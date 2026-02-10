@@ -1,5 +1,6 @@
 concourse:
   web:
+    externalUrl: https://concourse.miruohotspring.net
     localAuth:
       enabled: true
   worker:
