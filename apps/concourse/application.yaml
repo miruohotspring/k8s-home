@@ -12,6 +12,13 @@ spec:
       helm:
         valueFiles:
           - $values/apps/concourse/values.yaml
+        parameters:
+          - name: postgresql.image.repository
+            value: bitnami/postgresql
+          - name: postgresql.image.tag
+            value: latest
+          - name: postgresql.image.digest
+            value: sha256:c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5
     - repoURL: https://github.com/miruohotspring/k8s-home.git
       targetRevision: main
       ref: values
