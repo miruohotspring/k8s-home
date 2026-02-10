@@ -186,16 +186,28 @@ kubectl -n argocd get application ingress-nginx
 
 ```bash
 kubectl create namespace cloudflared --dry-run=client -o yaml | kubectl apply -f -
-kubectl -n cloudflared create secret generic cloudflared-token \
-  --from-literal=token='<CLOUDFLARED_TUNNEL_TOKEN>'
+kubectl -n cloudflared create secret generic cloudflared-tunnel-token \
+  --from-literal=TUNNEL_TOKEN='<CLOUDFLARED_TUNNEL_TOKEN>'
 
-kubectl -n cloudflared get secret cloudflared-token
+kubectl -n cloudflared get secret cloudflared-tunnel-token
 ```
 
 ### Expected Results
 
-- `secret/cloudflared-token created`（または configured）
+- `secret/cloudflared-tunnel-token created`（または configured）
 - `kubectl get secret` で `TYPE: Opaque` が確認できる
+
+### Apply cloudflared via Argo CD
+
+```bash
+kubectl -n argocd annotate application root-app argocd.argoproj.io/refresh=hard --overwrite
+kubectl -n argocd patch application root-app --type merge -p '{"operation":{"sync":{}}}'
+
+kubectl -n argocd annotate application cloudflared argocd.argoproj.io/refresh=hard --overwrite
+kubectl -n argocd patch application cloudflared --type merge -p '{"operation":{"sync":{}}}'
+kubectl -n argocd get application cloudflared
+kubectl -n cloudflared get pods
+```
 
 ## 7. Step 5: Argo CD Password (Estimated: 5 min)
 
@@ -383,7 +395,7 @@ kubectl get storageclass
 
 ```bash
 kubectl get secret -A
-kubectl -n cloudflared get secret cloudflared-token -o yaml
+kubectl -n cloudflared get secret cloudflared-tunnel-token -o yaml
 ```
 
 ### Expected Results
