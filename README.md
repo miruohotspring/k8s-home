@@ -37,19 +37,16 @@ flowchart LR
 ```text
 k8s-home/
 ├── README.md
-└── k8s/
-    └── clusters/
-        └── home/
-            ├── kustomization.yaml
-            ├── namespaces.yaml
-            └── bootstrap/
-                ├── argocd/
-                │   ├── install.yaml
-                │   ├── kustomization.yaml
-                │   └── namespace.yaml
-                └── root-app/
-                    ├── application.yaml
-                    └── project-infra.yaml
+├── kustomization.yaml
+├── namespaces.yaml
+└── bootstrap/
+    ├── argocd/
+    │   ├── install.yaml
+    │   ├── kustomization.yaml
+    │   └── namespace.yaml
+    └── root-app/
+        ├── application.yaml
+        └── project-infra.yaml
 ```
 
 ## 2. Prerequisites (Estimated: 10 min)
