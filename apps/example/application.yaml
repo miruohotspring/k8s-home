@@ -6,7 +6,7 @@ metadata:
 spec:
   project: apps
   source:
-    repoURL: "https://github.com/miruohotspring/web-app-template.git"
+    repoURL: git@github.com:miruohotspring/web-app-template.git
     targetRevision: HEAD
     path: infra/argocd
     directory:
