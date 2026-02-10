@@ -5,13 +5,16 @@ metadata:
   namespace: argocd
 spec:
   project: apps
-  source:
-    repoURL: https://concourse-charts.storage.googleapis.com/
-    chart: concourse
-    targetRevision: 18.5.0
-    helm:
-      valueFiles:
-        - values.yaml
+  sources:
+    - repoURL: https://concourse-charts.storage.googleapis.com/
+      chart: concourse
+      targetRevision: 18.5.0
+      helm:
+        valueFiles:
+          - $values/apps/concourse/values.yaml
+    - repoURL: https://github.com/miruohotspring/k8s-home.git
+      targetRevision: main
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: concourse
