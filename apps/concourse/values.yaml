@@ -17,6 +17,10 @@ web:
 
 postgresql:
   enabled: true
+  image:
+    repository: bitnami/postgresql
+    tag: latest
+    digest: "sha256:c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5"
   persistence:
     enabled: true
     storageClass: local-path
