@@ -11,11 +11,13 @@ spec:
       path: infra
       directory:
         recurse: true
+        include: "**/application.yaml"
     - repoURL: https://github.com/miruohotspring/k8s-home.git
       targetRevision: HEAD
       path: apps
       directory:
         recurse: true
+        include: "**/application.yaml"
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
