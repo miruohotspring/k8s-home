@@ -6,7 +6,7 @@ metadata:
 spec:
   project: infra
   source:
-    repoURL: https://github.com/miruohotspring/k8s-home.git
+    repoURL: git@github.com:miruohotspring/k8s-home.git
     targetRevision: main
     path: infra/cloudflared
   destination:

@@ -6,7 +6,7 @@ metadata:
 spec:
   description: Infrastructure applications for the home cluster
   sourceRepos:
-    - https://github.com/miruohotspring/k8s-home.git
+    - git@github.com:miruohotspring/k8s-home.git
     - https://kubernetes.github.io/ingress-nginx
     - https://argoproj.github.io/argo-helm
   destinations:

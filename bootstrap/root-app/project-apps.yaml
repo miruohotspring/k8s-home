@@ -6,7 +6,7 @@ metadata:
 spec:
   description: Application workloads for the home cluster
   sourceRepos:
-    - https://github.com/miruohotspring/k8s-home.git
+    - git@github.com:miruohotspring/k8s-home.git
     - https://concourse-charts.storage.googleapis.com/
   destinations:
     - namespace: concourse
