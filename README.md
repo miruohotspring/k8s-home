@@ -5,6 +5,7 @@
 ## Domain Placeholder Note
 
 本READMEに出る `argocd.<YOUR_DOMAIN>` / `concourse.<YOUR_DOMAIN>` / `*.<YOUR_DOMAIN>` はプレースホルダです。**実際の環境に合わせて `<YOUR_DOMAIN>` を必ず置き換えてください。**
+このリポジトリの現在の実運用例は `argocd.miruohotspring.net` / `concourse.miruohotspring.net` です。
 
 また Secret の実値は Git に保存せず、`kubectl create secret` もしくは将来的に **SOPS / ExternalSecrets** で管理することを推奨します。
 
@@ -29,7 +30,7 @@ flowchart LR
 ### 1.2 App of Apps Pattern
 
 - `bootstrap/root-app/application.yaml` が親 Application (`root-app`)。
-- `k8s/clusters/home/infra` と `k8s/clusters/home/apps` を再帰的に監視し、配下 Application を自動同期。
+- `infra` と `apps` を再帰的に監視し、配下 Application を自動同期。
 - 新規アプリは `apps/` または `infra/` に Application を追加するだけで展開可能。
 
 ### 1.3 Directory Tree
@@ -135,16 +136,13 @@ metadata:
   namespace: argocd
 spec:
   project: infra
-  sources:
-    - repoURL: https://kubernetes.github.io/ingress-nginx
-      chart: ingress-nginx
-      targetRevision: 4.11.3
-      helm:
-        valueFiles:
-          - $values/k8s/clusters/home/infra/ingress-nginx/values.yaml
-    - repoURL: https://github.com/miruohotspring/k8s-home.git
-      targetRevision: HEAD
-      ref: values
+  source:
+    repoURL: https://kubernetes.github.io/ingress-nginx
+    chart: ingress-nginx
+    targetRevision: 4.12.0
+    helm:
+      valueFiles:
+        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: ingress-nginx
@@ -230,7 +228,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 ```bash
 # root-app と Project を適用
-kubectl apply -k k8s/clusters/home/bootstrap/root-app/
+kubectl apply -k bootstrap/root-app/
 
 # root-app 同期状態確認
 kubectl -n argocd get applications.argoproj.io
@@ -291,9 +289,9 @@ kubectl -n concourse describe ingress
 #### Commands
 
 ```bash
-mkdir -p k8s/clusters/home/apps/<app-name>
+mkdir -p apps/<app-name>
 # application.yaml / values.yaml を作成
-kubectl -n argocd apply -f k8s/clusters/home/apps/<app-name>/application.yaml
+kubectl -n argocd apply -f apps/<app-name>/application.yaml
 ```
 
 #### Expected Results
@@ -310,8 +308,8 @@ kubectl -n argocd apply -f k8s/clusters/home/apps/<app-name>/application.yaml
 #### Commands
 
 ```bash
-cp -r k8s/clusters/home/apps/_template k8s/clusters/home/apps/<app-name>
-kubectl apply -k k8s/clusters/home/apps/<app-name>
+cp -r apps/_template apps/<app-name>
+kubectl apply -k apps/<app-name>
 ```
 
 #### Expected Results
@@ -431,7 +429,7 @@ curl -I https://argocd.<YOUR_DOMAIN>
 
 1. Traefik 無効化済み
 2. Tunnel 作成 + token Secret 作成済み
-3. `kubectl apply -k k8s/clusters/home/bootstrap/argocd/` 完了
-4. `kubectl apply -f k8s/clusters/home/bootstrap/root-app/` 完了
+3. `kubectl apply -k bootstrap/argocd/` 完了
+4. `kubectl apply -k bootstrap/root-app/` 完了
 5. Argo CD で `root-app` が `Synced/Healthy`
 6. `argocd.<YOUR_DOMAIN>` と `concourse.<YOUR_DOMAIN>` 到達確認
