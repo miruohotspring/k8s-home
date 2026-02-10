@@ -120,7 +120,6 @@ kubectl get pods -A | grep -i traefik || true
 
 ### Expected Results
 
-- Tunnel が `Healthy` 表示
 - Public Hostname が 2件以上設定済み
 - Token を Kubernetes Secret 化できる状態
 
@@ -155,21 +154,33 @@ spec:
       selfHeal: true
 ```
 
+### Actions
+```bash
+# 1) Argo CD を先に入れる
+kubectl apply -k bootstrap/argocd/
+
+# 2) ingress-nginx 用 AppProject を作成
+kubectl apply -f bootstrap/root-app/project-infra.yaml
+
+# 3) ingress-nginx Application を作成（Argo CD が Helm でインストール）
+kubectl apply -f infra/ingress-nginx/application.yaml
+```
+
 ### Verification Commands
 
 ```bash
 kubectl -n ingress-nginx get deploy,svc,pods
 kubectl -n ingress-nginx get svc ingress-nginx-controller
+kubectl -n argocd get application ingress-nginx
 ```
 
 ### Expected Results
 
 - ingress-nginx controller Pod が `Running`
 - `ingress-nginx-controller` Service が作成済み
+-  Argo CDの `ingress-nginx` applicationが `Synced` かつ `Healthy`
 
 ## 6. Step 4: Create cloudflared Secret (Estimated: 5 min)
-
-> 作成タイミング: **Tunnel 作成後、Argo CD bootstrap 前**。
 
 ### Commands
 
@@ -186,14 +197,11 @@ kubectl -n cloudflared get secret cloudflared-token
 - `secret/cloudflared-token created`（または configured）
 - `kubectl get secret` で `TYPE: Opaque` が確認できる
 
-## 7. Step 5: Argo CD Bootstrap (Estimated: 15 min)
+## 7. Step 5: Argo CD Password (Estimated: 5 min)
 
 ### Commands
 
 ```bash
-kubectl apply -k k8s/clusters/home/bootstrap/argocd/
-kubectl -n argocd get pods
-
 # 初期adminパスワード取得
 kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath="{.data.password}" | base64 -d && echo
@@ -210,7 +218,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 ```bash
 # root-app と Project を適用
-kubectl apply -f k8s/clusters/home/bootstrap/root-app/
+kubectl apply -k k8s/clusters/home/bootstrap/root-app/
 
 # root-app 同期状態確認
 kubectl -n argocd get applications.argoproj.io
