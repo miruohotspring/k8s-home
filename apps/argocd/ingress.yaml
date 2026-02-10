@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: argocd.<YOUR_DOMAIN>
+    - host: argocd.home.miruohotspring.net
       http:
         paths:
           - path: /

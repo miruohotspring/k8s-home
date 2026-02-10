@@ -21,7 +21,7 @@ web:
     enabled: true
     ingressClassName: nginx
     hosts:
-      - concourse.<YOUR_DOMAIN>
+      - concourse.home.miruohotspring.net
 
 postgresql:
   enabled: true
