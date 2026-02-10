@@ -4,7 +4,7 @@ metadata:
   name: root-app
   namespace: argocd
 spec:
-  project: default
+  project: root-app
   sources:
     - repoURL: git@github.com:miruohotspring/k8s-home.git
       targetRevision: HEAD

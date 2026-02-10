@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: root-app
+  namespace: argocd
+spec:
+  description: "Project for root App of Apps - restricted permissions"
+
+  sourceRepos:
+    - 'https://github.com/miruohotspring/k8s-home.git'
+
+  destinations:
+    - namespace: 'argocd'
+      server: 'https://kubernetes.default.svc'
+    - namespace: 'ingress-nginx'
+      server: 'https://kubernetes.default.svc'
+    - namespace: 'cloudflare-tunnel'
+      server: 'https://kubernetes.default.svc'
+    - namespace: 'concourse'
+      server: 'https://kubernetes.default.svc'
+
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: 'argoproj.io'
+      kind: Application
+    - group: 'argoproj.io'
+      kind: AppProject
+
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
