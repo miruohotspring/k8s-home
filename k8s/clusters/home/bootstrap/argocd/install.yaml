@@ -1,0 +1,4 @@
+# This file is intentionally a reference placeholder.
+# For kubectl apply -k usage, specify the Argo CD official manifest URL in
+# kustomization.yaml resources instead of maintaining a vendored install manifest.
+# https://raw.githubusercontent.com/argoproj/argo-cd/v2.13.3/manifests/install.yaml

@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: concourse
+  namespace: argocd
+spec:
+  project: apps
+  source:
+    repoURL: https://concourse-charts.storage.googleapis.com/
+    chart: concourse
+    targetRevision: 18.7.0
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: concourse
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

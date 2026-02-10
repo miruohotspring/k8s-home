@@ -1,0 +1,8 @@
+controller:
+  service:
+    type: LoadBalancer
+  replicaCount: 1
+  # Future worker-node expansion: this block can be overridden when dedicated ingress nodes are added.
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}

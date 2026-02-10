@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/miruohotspring/k8s-home.git
+      targetRevision: HEAD
+      path: k8s/clusters/home/infra
+      directory:
+        recurse: true
+    - repoURL: https://github.com/miruohotspring/k8s-home.git
+      targetRevision: HEAD
+      path: k8s/clusters/home/apps
+      directory:
+        recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

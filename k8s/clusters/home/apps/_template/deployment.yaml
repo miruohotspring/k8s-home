@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: <APP_NAME>
+  namespace: <APP_NAME>
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: <APP_NAME>
+  template:
+    metadata:
+      labels:
+        app: <APP_NAME>
+    spec:
+      # nodeSelector:
+      #   kubernetes.io/hostname: <NODE_NAME>
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #         - matchExpressions:
+      #             - key: kubernetes.io/hostname
+      #               operator: In
+      #               values:
+      #                 - <NODE_NAME>
+      containers:
+        - name: <APP_NAME>
+          image: <IMAGE>:<TAG>
+          ports:
+            - containerPort: 8080

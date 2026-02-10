@@ -1,0 +1,23 @@
+concourse:
+  web:
+    localAuth:
+      enabled: true
+  worker:
+    replicas: 1
+
+secrets:
+  localUsers: "admin:<CHANGE_ME_PASSWORD>"
+
+web:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - concourse.<YOUR_DOMAIN>
+
+postgresql:
+  enabled: true
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 8Gi
