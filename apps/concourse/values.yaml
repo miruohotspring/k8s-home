@@ -6,9 +6,17 @@ concourse:
     replicas: 1
 
 secrets:
-  localUsers: "admin:<CHANGE_ME_PASSWORD>"
+  # This value is intentionally non-sensitive.
+  # CONCOURSE_ADD_LOCAL_USER is overridden from a Kubernetes Secret via web.env.
+  localUsers: "placeholder:disabled"
 
 web:
+  env:
+    - name: CONCOURSE_ADD_LOCAL_USER
+      valueFrom:
+        secretKeyRef:
+          name: concourse-local-users
+          key: local-users
   ingress:
     enabled: true
     ingressClassName: nginx

@@ -236,8 +236,22 @@ kubectl -n argocd describe application root-app
 Concourse は `apps/concourse/values.yaml` で以下を管理します。
 
 - Ingress host (`concourse.<YOUR_DOMAIN>`)
-- 認証情報（Secret参照）
+- 認証情報（`apps/concourse/manifests/local-users-secret.yaml` の Secret参照）
 - PostgreSQL 永続化 (`persistence.enabled: true` など)
+
+### Concourse Local User Secret
+
+`localUsers` の実値は `values.yaml` ではなく Kubernetes Secret で管理します。
+
+```bash
+# 初回作成（または更新）
+kubectl -n concourse create secret generic concourse-local-users \
+  --from-literal=local-users='admin:<STRONG_PASSWORD>' \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# 反映確認
+kubectl -n concourse get secret concourse-local-users -o yaml
+```
 
 ### Verification Commands
 
@@ -362,6 +376,7 @@ kubectl get storageclass
 - Secret の実値はコミットしない
 - Git には Secret サンプルマニフェストのみ配置
 - 自宅用途は `kubectl create secret` で開始し、将来は **SOPS / ExternalSecrets** へ移行
+- `apps/concourse/manifests/local-users-secret.yaml` の `local-users` は必ず実環境値で更新する
 
 ### Commands
 
