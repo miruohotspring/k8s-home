@@ -8,12 +8,15 @@ spec:
   sourceRepos:
     - git@github.com:miruohotspring/k8s-home.git
     - https://concourse-charts.storage.googleapis.com/
+    - https://github.com/miruohotspring/web-app-template.git
   destinations:
     - namespace: concourse
       server: https://kubernetes.default.svc
     - namespace: concourse-main
       server: https://kubernetes.default.svc
     - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: example-dev
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: '*'
