@@ -9,12 +9,15 @@ spec:
     - git@github.com:miruohotspring/k8s-home.git
     - https://kubernetes.github.io/ingress-nginx
     - https://argoproj.github.io/argo-helm
+    - https://bitnami-labs.github.io/sealed-secrets
   destinations:
     - namespace: ingress-nginx
       server: https://kubernetes.default.svc
     - namespace: cloudflared
       server: https://kubernetes.default.svc
     - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: '*'
