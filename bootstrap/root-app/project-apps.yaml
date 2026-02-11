@@ -19,8 +19,10 @@ spec:
     - namespace: example-dev
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
-    - group: '*'
-      kind: '*'
+    - group: ''
+      kind: Namespace
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
