@@ -3,6 +3,4 @@ kind: Kustomization
 
 resources:
   - namespaces.yaml
-  - bootstrap/
-  - infra/
-  - apps/
+  - bootstrap/root-app
