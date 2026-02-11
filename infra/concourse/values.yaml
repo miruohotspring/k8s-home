@@ -27,6 +27,9 @@ worker:
 
 postgresql:
   enabled: true
+  image:
+    repository: bitnami/postgresql
+    tag: latest
   persistence:
     enabled: true
     storageClass: local-path
