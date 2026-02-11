@@ -22,8 +22,8 @@ kubeseal --fetch-cert > /tmp/sealed-secrets-cert.pem
 rm /tmp/sealed-secrets-cert.pem
 ```
 
-## Create a New Sealed Secret
-1. Create plain Secret YAML (not committed to Git):
+## Standard Secret Creation Flow
+1. Create plain Secret YAML (never commit plaintext):
 
 ```bash
 kubectl create secret generic sample-secret \
@@ -33,19 +33,19 @@ kubectl create secret generic sample-secret \
   --dry-run=client -o yaml > /tmp/sample-secret.yaml
 ```
 
-2. Encrypt with kubeseal:
+2. Encrypt and write repository file:
 
 ```bash
 kubeseal --format yaml < /tmp/sample-secret.yaml > infra/secrets/sample-secret-sealed.yaml
 ```
 
-3. Remove plaintext file immediately:
+3. Remove plaintext immediately:
 
 ```bash
 rm /tmp/sample-secret.yaml
 ```
 
-4. Commit only `*-sealed.yaml` to Git:
+4. Commit only sealed manifest:
 
 ```bash
 git add infra/secrets/sample-secret-sealed.yaml
@@ -53,16 +53,44 @@ git commit -m "feat: add sample SealedSecret"
 git push
 ```
 
+5. Verify reconciliation:
+
+```bash
+kubectl get sealedsecret sample-secret -n example-dev
+kubectl get secret sample-secret -n example-dev
+```
+
+## Token / Password Rotation Flow
+Use this for Argo CD admin password, Concourse local user password, API tokens, and registry credentials.
+
+1. Generate new credential outside Git.
+2. Recreate plaintext secret YAML into `/tmp`.
+3. Re-seal and overwrite existing `*-sealed.yaml` in repo.
+4. Commit and push.
+5. Trigger Argo CD sync and verify app/secret health.
+6. Validate actual login/API access using the new credential.
+
+Example:
+
+```bash
+kubectl create secret generic argocd-admin-login \
+  -n argocd \
+  --from-literal=password='<NEW_PASSWORD>' \
+  --dry-run=client -o yaml > /tmp/argocd-admin-login.yaml
+
+kubeseal --format yaml < /tmp/argocd-admin-login.yaml > infra/secrets/argocd-admin-login-sealed.yaml
+rm /tmp/argocd-admin-login.yaml
+```
+
 ## Update Existing Secret
-1. Export current secret:
+1. Export current secret as template:
 
 ```bash
 kubectl get secret sample-secret -n example-dev -o yaml > /tmp/sample-secret.yaml
 ```
 
-2. Edit data source or regenerate secret YAML (recommended: recreate using `kubectl create secret ... --dry-run=client -o yaml`).
-
-3. Reseal and overwrite file:
+2. Regenerate or edit desired values.
+3. Reseal and replace managed file:
 
 ```bash
 kubeseal --format yaml < /tmp/sample-secret.yaml > infra/secrets/sample-secret-sealed.yaml
@@ -90,20 +118,27 @@ kubectl get sealedsecret <name> -n <namespace>
 kubectl get secret <name> -n <namespace>
 ```
 
-## Backup Sealed Secrets Private Key (Critical)
+## Key Backup and Restore (Critical)
 If the private key is lost, existing SealedSecrets cannot be decrypted.
-Backup immediately after setup and store in secure secret storage.
 
-```bash
-kubectl get secret -n kube-system sealed-secrets-key -o yaml > sealed-secrets-key-backup.yaml
-# Store securely (e.g. 1Password, AWS Secrets Manager)
-```
-
-Note: key name may include suffix (for example `sealed-secrets-keyxxxxx`).
-Use this command to discover exact name:
-
+### Backup
 ```bash
 kubectl get secrets -n kube-system | grep sealed-secrets-key
+kubectl get secret -n kube-system <sealed-secrets-key-name> -o yaml > sealed-secrets-key-backup.yaml
+```
+- Store backup in secure secret storage (for example password manager or cloud secret store).
+- Do not commit backup key to Git repositories.
+
+### Restore (Disaster Recovery)
+1. Recreate key secret in target cluster.
+2. Restart controller.
+3. Reconcile one known sealed secret to confirm decryption.
+
+```bash
+kubectl apply -f sealed-secrets-key-backup.yaml
+kubectl rollout restart deploy/sealed-secrets-controller -n kube-system
+kubectl rollout status deploy/sealed-secrets-controller -n kube-system
+kubectl get sealedsecret -A
 ```
 
 ## Troubleshooting
@@ -119,3 +154,6 @@ kubectl get secrets -n kube-system | grep sealed-secrets-key
 - Secret not recreated after apply:
   - Confirm encrypted data namespace/name matches expected destination.
   - Re-apply SealedSecret and re-check controller logs.
+- Secret mismatch after credential rotation:
+  - Confirm application pod actually restarted and consumed new secret.
+  - Check stale env var mounts and force rollout if required.
