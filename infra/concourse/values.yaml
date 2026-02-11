@@ -30,7 +30,6 @@ postgresql:
   image:
     repository: bitnami/postgresql
     tag: latest
-    digest: sha256:6bb3cb8210a89f19f5d037638901049d7d7c598fbec644455a4dc82fd1c59350
   primary:
     extraEnvVars:
       - name: OPENSSL_FIPS
