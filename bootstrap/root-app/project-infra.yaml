@@ -22,6 +22,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: concourse
       server: https://kubernetes.default.svc
+    - namespace: concourse-main
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'
