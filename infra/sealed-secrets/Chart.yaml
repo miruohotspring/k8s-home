@@ -1,0 +1,6 @@
+apiVersion: v2
+name: sealed-secrets-config
+description: Values holder for Sealed Secrets Argo CD application
+type: application
+version: 0.1.0
+appVersion: "2.16.2"
