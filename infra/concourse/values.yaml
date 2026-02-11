@@ -1,22 +1,18 @@
 concourse:
   web:
     externalUrl: https://concourse.miruohotspring.net
-    localAuth:
-      enabled: true
+    auth:
+      mainTeam:
+        localUser: admin
   worker:
     replicas: 1
-
-secrets:
-  # This value is intentionally non-sensitive.
-  # CONCOURSE_ADD_LOCAL_USER is overridden from a Kubernetes Secret via web.env.
-  localUsers: "placeholder:disabled"
 
 web:
   env:
     - name: CONCOURSE_ADD_LOCAL_USER
       valueFrom:
         secretKeyRef:
-          name: concourse-local-users
+          name: concourse-admin
           key: local-users
   ingress:
     enabled: true
@@ -24,13 +20,18 @@ web:
     hosts:
       - concourse.miruohotspring.net
 
+worker:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
 postgresql:
   enabled: true
-  image:
-    repository: bitnami/postgresql
-    tag: latest
-    digest: "sha256:c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5"
   persistence:
     enabled: true
     storageClass: local-path
-    size: 8Gi
+    size: 10Gi

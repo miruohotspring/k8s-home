@@ -243,25 +243,25 @@ kubectl -n argocd describe application root-app
 
 ## 9. Step 7: Concourse Deploy Verification (Estimated: 20 min)
 
-Concourse は `apps/concourse/values.yaml` で以下を管理します。
+Concourse は `infra/concourse/values.yaml` で以下を管理します。
 
 - Ingress host (`concourse.<YOUR_DOMAIN>`)
-- 認証情報（`concourse-local-users` Secret参照）
+- 認証情報（`concourse-admin` Secret参照）
 - PostgreSQL 永続化 (`persistence.enabled: true` など)
 
 ### Concourse Local User Secret
 
 `localUsers` の実値は `values.yaml` ではなく Kubernetes Secret で管理します。
-サンプルは `apps/concourse/local-users-secret.example.yaml` を参照してください。
+実運用では `infra/secrets/concourse-admin-sealed.yaml` を `kubeseal` で暗号化して運用してください。
 
 ```bash
 # 初回作成（または更新）
-kubectl -n concourse create secret generic concourse-local-users \
+kubectl -n concourse create secret generic concourse-admin \
   --from-literal=local-users='admin:<STRONG_PASSWORD>' \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # 反映確認
-kubectl -n concourse get secret concourse-local-users -o yaml
+kubectl -n concourse get secret concourse-admin -o yaml
 ```
 
 ### Verification Commands
@@ -387,7 +387,7 @@ kubectl get storageclass
 - Secret の実値はコミットしない
 - Git には Secret サンプルマニフェストのみ配置
 - 自宅用途は `kubectl create secret` で開始し、将来は **SOPS / ExternalSecrets** へ移行
-- `apps/concourse/local-users-secret.example.yaml` はサンプルとして扱い、実値は `kubectl create secret` で投入する
+- `infra/secrets/concourse-admin-sealed.yaml` はサンプル雛形。`kubeseal` の実出力で上書きし、GitOpsで投入する
 
 ### Commands
 

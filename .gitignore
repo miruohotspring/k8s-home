@@ -2,6 +2,9 @@
 *.secret
 *.key
 secrets/
+!infra/secrets/
+!infra/secrets/application.yaml
+!infra/secrets/*-sealed.yaml
 
 # Terraform
 .terraform/
