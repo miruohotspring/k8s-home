@@ -4,16 +4,12 @@ concourse:
     auth:
       mainTeam:
         localUser: admin
+    localAuth:
+      enabled: true
   worker:
     replicas: 1
 
 web:
-  env:
-    - name: CONCOURSE_ADD_LOCAL_USER
-      valueFrom:
-        secretKeyRef:
-          name: concourse-admin
-          key: local-users
   ingress:
     enabled: true
     ingressClassName: nginx
@@ -35,3 +31,7 @@ postgresql:
     enabled: true
     storageClass: local-path
     size: 10Gi
+
+secrets:
+  # Manage concourse-web / concourse-worker Secrets via SealedSecret (GitOps)
+  create: false
