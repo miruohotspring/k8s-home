@@ -18,6 +18,16 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: concourse
+  ignoreDifferences:
+    # Concourse chart renders duplicate env keys (CONCOURSE_ADD_LOCAL_USER) when also
+    # injecting web.env. Argo CD can throw ComparisonError due to setElementOrder
+    # mismatch, which blocks reconciliation. Ignore env diffs to keep sync healthy.
+    - group: apps
+      kind: Deployment
+      name: concourse-web
+      namespace: concourse
+      jsonPointers:
+        - /spec/template/spec/containers/0/env
   syncPolicy:
     automated:
       prune: true
