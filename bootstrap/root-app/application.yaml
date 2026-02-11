@@ -7,13 +7,13 @@ spec:
   project: root-app
   sources:
     - repoURL: git@github.com:miruohotspring/k8s-home.git
-      targetRevision: HEAD
+      targetRevision: v0.1.0
       path: infra
       directory:
         recurse: true
         include: "**/application.yaml"
     - repoURL: git@github.com:miruohotspring/k8s-home.git
-      targetRevision: HEAD
+      targetRevision: v0.1.0
       path: apps
       directory:
         recurse: true

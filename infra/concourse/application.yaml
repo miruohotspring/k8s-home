@@ -13,7 +13,7 @@ spec:
         valueFiles:
           - $values/infra/concourse/values.yaml
     - repoURL: git@github.com:miruohotspring/k8s-home.git
-      targetRevision: HEAD
+      targetRevision: v0.1.0
       ref: values
   destination:
     server: https://kubernetes.default.svc

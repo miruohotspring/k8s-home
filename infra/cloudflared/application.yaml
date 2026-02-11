@@ -7,7 +7,7 @@ spec:
   project: infra
   source:
     repoURL: git@github.com:miruohotspring/k8s-home.git
-    targetRevision: main
+    targetRevision: v0.1.0
     path: infra/cloudflared
   destination:
     server: https://kubernetes.default.svc
