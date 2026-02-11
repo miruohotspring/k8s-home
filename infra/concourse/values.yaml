@@ -29,7 +29,7 @@ postgresql:
   enabled: true
   image:
     repository: bitnami/postgresql
-    tag: "17"
+    tag: latest
   primary:
     extraEnvVars:
       - name: OPENSSL_FIPS
