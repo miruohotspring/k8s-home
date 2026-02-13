@@ -6,8 +6,8 @@ metadata:
 spec:
   project: apps
   source:
-    repoURL: git@github.com:miruohotspring/web-app-template.git
-    targetRevision: 1f729883328a4b8eb5e5a17c1d6ddf5e6cf6d0a4
+    repoURL: git@github.com:miruohotspring/web-app-example-git-ops.git
+    targetRevision: main
     path: infra/argocd
     directory:
       recurse: true

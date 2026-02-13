@@ -9,6 +9,7 @@ spec:
     - git@github.com:miruohotspring/k8s-home.git
     - https://concourse-charts.storage.googleapis.com/
     - https://github.com/miruohotspring/web-app-template.git
+    - git@github.com:miruohotspring/web-app-example-git-ops.git
   destinations:
     - namespace: concourse
       server: https://kubernetes.default.svc
