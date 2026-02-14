@@ -43,7 +43,7 @@ spec:
                   mountPath: /work
           containers:
             - name: refresh
-              image: bitnami/kubectl:1.30.14
+              image: bitnami/kubectl:latest
               env:
                 - name: ECR_REGISTRY
                   value: "004908959120.dkr.ecr.ap-northeast-1.amazonaws.com"
@@ -66,4 +66,3 @@ spec:
               volumeMounts:
                 - name: work
                   mountPath: /work
-
