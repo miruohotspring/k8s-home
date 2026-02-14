@@ -29,7 +29,7 @@ resource "aws_iam_user_policy" "ecr_pull" {
           "ecr:GetDownloadUrlForLayer",
           "ecr:BatchGetImage",
         ]
-        Resource = var.ecr_repository_arns
+        Resource = "*"
       },
     ]
   })

@@ -19,11 +19,6 @@ module "k8s_image_pull_iam" {
   user_name = "k8s-image-pull"
   user_path = "/service/"
 
-  ecr_repository_arns = [
-    "arn:aws:ecr:ap-northeast-1:004908959120:repository/web-app-template-frontend",
-    "arn:aws:ecr:ap-northeast-1:004908959120:repository/web-app-template-api",
-  ]
-
   tags = {
     Environment = var.environment
     ManagedBy   = "terraform"

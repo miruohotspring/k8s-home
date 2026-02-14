@@ -9,11 +9,6 @@ variable "user_path" {
   default     = "/service/"
 }
 
-variable "ecr_repository_arns" {
-  description = "List of ECR repository ARNs"
-  type        = list(string)
-}
-
 variable "tags" {
   description = "Tags to apply to IAM resources"
   type        = map(string)
