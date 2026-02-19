@@ -1,6 +1,9 @@
 concourse:
   web:
     externalUrl: https://concourse.miruohotspring.net
+    kubernetes:
+      # Disable Kubernetes credential manager to avoid implicit team-namespace lookups.
+      enabled: false
     auth:
       mainTeam:
         localUser: admin

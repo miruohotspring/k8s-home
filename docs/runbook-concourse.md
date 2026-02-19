@@ -65,9 +65,9 @@ fly -t home destroy-pipeline -p <name>
 
 ### 3.3 Variable Supply (Secrets and Runtime Vars)
 - Non-secret vars: keep in `ci/vars/<env>.yml` and review in PR.
-- Secret vars: do not hardcode in pipeline YAML. Use one of:
-  - `-l ci/vars/<env>.secrets.yml` from secure local store
-  - Kubernetes Secret / SealedSecret managed credential source
+- Secret vars: do not hardcode in pipeline YAML.
+- Concourse is configured without Kubernetes credential manager, so secrets must be injected at `set-pipeline` time with `-l <secrets-file>`.
+- Recommended flow: generate a temporary vars file from Kubernetes Secrets, apply the pipeline, then delete the temp file.
 - Minimal deployment variables for web apps:
   - `image_tag`
   - `ecr_registry`
@@ -78,8 +78,23 @@ fly -t home destroy-pipeline -p <name>
 Example:
 ```bash
 fly -t home set-pipeline -p web-app-template -c ci/pipeline.yml \
-  -l ci/vars/dev.yml \
+  -l /tmp/web-app-template-secrets.yml \
   -v image_tag=$(git rev-parse --short HEAD)
+```
+
+Temporary vars file example:
+```bash
+tmp_vars=/tmp/web-app-template-secrets.yml
+
+cat >"$tmp_vars" <<'EOF'
+"concourse-github-ssh-app.private_key": |
+  <PRIVATE_KEY_PEM>
+"concourse-github-ssh.private_key": |
+  <PRIVATE_KEY_PEM>
+"concourse-aws-creds.aws_access_key_id": "<AWS_ACCESS_KEY_ID>"
+"concourse-aws-creds.aws_secret_access_key": "<AWS_SECRET_ACCESS_KEY>"
+"concourse-aws-creds.aws_region": "ap-northeast-1"
+EOF
 ```
 
 ## 4. Incident Recovery
