@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh ECR Docker registry token in Kubernetes
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ecr-token-refresh/credentials
+ExecStart=/usr/local/bin/ecr-token-refresh.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ecr-token-refresh

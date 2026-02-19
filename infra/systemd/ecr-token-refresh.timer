@@ -1,0 +1,11 @@
+[Unit]
+Description=ECR token refresh timer (every 6 hours)
+Requires=ecr-token-refresh.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
