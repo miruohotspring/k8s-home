@@ -52,9 +52,11 @@ kubectl logs -n concourse deploy/concourse-web --tail=200
 ```bash
 fly -t home set-pipeline -p <name> -c ci/pipeline.yml \
   -l ci/vars/<env>.yml \
+  -l /tmp/<name>-secrets.yml \
   -v git_branch=main
 fly -t home unpause-pipeline -p <name>
 ```
+- `-l /tmp/<name>-secrets.yml` (or equivalent secrets vars file) is mandatory for this environment.
 
 ### 3.2 Pause / Unpause / Destroy
 ```bash
@@ -67,7 +69,7 @@ fly -t home destroy-pipeline -p <name>
 - Non-secret vars: keep in `ci/vars/<env>.yml` and review in PR.
 - Secret vars: do not hardcode in pipeline YAML.
 - Concourse is configured without Kubernetes credential manager, so secrets must be injected at `set-pipeline` time with `-l <secrets-file>`.
-- Recommended flow: generate a temporary vars file from Kubernetes Secrets, apply the pipeline, then delete the temp file.
+- `fly set-pipeline` must always include a dedicated secrets vars file (example: `/tmp/web-app-template-secrets.yml`).
 - Minimal deployment variables for web apps:
   - `image_tag`
   - `ecr_registry`
@@ -82,9 +84,14 @@ fly -t home set-pipeline -p web-app-template -c ci/pipeline.yml \
   -v image_tag=$(git rev-parse --short HEAD)
 ```
 
-Temporary vars file example:
+### 3.4 Credential運用
+
+Temporary secrets vars file handling (`mktemp` + `trap` required):
 ```bash
-tmp_vars=/tmp/web-app-template-secrets.yml
+tmp_vars="$(mktemp /tmp/web-app-template-secrets.XXXXXX.yml)"
+cleanup() { rm -f "$tmp_vars"; }
+trap cleanup EXIT INT TERM
+chmod 600 "$tmp_vars"
 
 cat >"$tmp_vars" <<'EOF'
 "concourse-github-ssh-app.private_key": |
@@ -95,7 +102,56 @@ cat >"$tmp_vars" <<'EOF'
 "concourse-aws-creds.aws_secret_access_key": "<AWS_SECRET_ACCESS_KEY>"
 "concourse-aws-creds.aws_region": "ap-northeast-1"
 EOF
+
+fly -t home set-pipeline -p web-app-template -c ci/pipeline.yml \
+  -l ci/vars/prod.yml \
+  -l "$tmp_vars" \
+  --check-creds
 ```
+
+Permanent storage rule (must not use `/tmp`):
+```bash
+install -d -m 700 ~/.config/concourse/secrets
+cp <path-from-secret-manager>/<pipeline>.yml ~/.config/concourse/secrets/<pipeline>.yml
+chmod 600 ~/.config/concourse/secrets/<pipeline>.yml
+```
+- Keep long-lived secrets vars files only under `~/.config/concourse/secrets/` (or another restricted directory outside `/tmp`).
+- Enforce permissions: directory `700`, file `600`.
+- Plaintext secrets are forbidden in Git, PR comments, docs, issue trackers, and chat logs.
+
+### 3.5 Rotation
+
+Recommended regular rotation intervals:
+- GitHub deploy key: every 90 days.
+- AWS access key used by Concourse: every 90 days.
+
+Emergency rotation triggers (rotate immediately):
+- Any leak/suspicion of private key or access key exposure.
+- Offboarding or role change of a credential owner.
+- Repeated authentication failures or suspicious audit log events.
+
+Rotation procedure highlights:
+1. Generate/register a new GitHub deploy key, then update secret source used for `set-pipeline`.
+2. Create a new AWS access key, update the secret source, and prepare a new secrets vars file.
+3. Re-apply pipelines with `fly set-pipeline --check-creds`.
+4. Run `fly check-resource` on key resources.
+5. Disable and delete old credentials only after verification passes.
+
+### 3.6 Verification
+
+After credential updates or rotation, run:
+```bash
+fly -t home set-pipeline -p <name> -c ci/pipeline.yml \
+  -l ci/vars/<env>.yml \
+  -l "$tmp_vars" \
+  --check-creds
+
+fly -t home check-resource -r <name>/<resource>
+fly -t home check-resource -r <name>/<resource2>
+fly -t home jobs -p <name>
+```
+- Expected: `set-pipeline --check-creds` returns no missing/invalid credential errors.
+- Expected: each `check-resource` succeeds and downstream jobs become runnable.
 
 ## 4. Incident Recovery
 
