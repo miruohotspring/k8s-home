@@ -24,7 +24,7 @@ fly -t home watch -j <pipeline>/<job>
 
 ### 1.4 Concourse PostgreSQL Baseline (GitOps)
 - PostgreSQL image tag must be pinned in `infra/concourse/values.yaml` (`latest` is forbidden).
-- Current baseline: `bitnami/postgresql:17.5.0`.
+- Current baseline: `bitnami/postgresql:sha256-c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5`.
 - Resource expectation for `concourse-postgresql`:
   - `requests`: `cpu=250m`, `memory=512Mi`
   - `limits`: `cpu=1`, `memory=1Gi`
