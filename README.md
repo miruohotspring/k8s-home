@@ -9,6 +9,13 @@
 
 また Secret の実値は Git に保存せず、`kubectl create secret` もしくは将来的に **SOPS / ExternalSecrets** で管理することを推奨します。
 
+## Operational Docs
+
+- Proxmox初期化復元: `docs/bootstrap-proxmox.md`
+- Argo CD運用: `docs/runbook-argocd.md`
+- Concourse運用: `docs/runbook-concourse.md`
+- Sealed Secrets運用: `docs/sealed-secrets.md`
+
 ## 1. Architecture Overview (Estimated: 10 min)
 
 ### 1.1 System Diagram
