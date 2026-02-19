@@ -255,7 +255,7 @@ Concourse は `infra/concourse/values.yaml` で以下を管理します。
 - Ingress host (`concourse.<YOUR_DOMAIN>`)
 - 認証情報（`concourse-admin` Secret参照）
 - PostgreSQL 永続化 (`persistence.enabled: true` など)
-- PostgreSQL image tag 固定（`bitnami/postgresql:sha256-c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5`。`latest` は使用しない）
+- PostgreSQL image digest 固定（`bitnami/postgresql@sha256:c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5`。`latest` は使用しない）
 - PostgreSQL resource 期待値（`requests: cpu=250m/memory=512Mi`, `limits: cpu=1/memory=1Gi`）
 
 ### Concourse Local User Secret
@@ -288,7 +288,7 @@ kubectl -n concourse get sts concourse-postgresql \
 - `concourse-web`, `concourse-worker` が `Running`
 - Ingress host が `concourse.<YOUR_DOMAIN>`
 - PostgreSQL 用 PVC が `Bound`
-- PostgreSQL image が `bitnami/postgresql:sha256-c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5`（`latest` ではない）
+- PostgreSQL image が `bitnami/postgresql@sha256:c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5`（`latest` ではない）
 - PostgreSQL resources が `requests 250m/512Mi`, `limits 1/1Gi`
 
 ## 10. Add New Applications (Estimated: 15 min)
