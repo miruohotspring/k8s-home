@@ -22,6 +22,19 @@ fly -t home trigger-job -j <pipeline>/<job>
 fly -t home watch -j <pipeline>/<job>
 ```
 
+### 1.4 Concourse PostgreSQL Baseline (GitOps)
+- PostgreSQL image tag must be pinned in `infra/concourse/values.yaml` (`latest` is forbidden).
+- Current baseline: `bitnami/postgresql:17.5.0`.
+- Resource expectation for `concourse-postgresql`:
+  - `requests`: `cpu=250m`, `memory=512Mi`
+  - `limits`: `cpu=1`, `memory=1Gi`
+
+Verification:
+```bash
+kubectl -n concourse get sts concourse-postgresql \
+  -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}{.spec.template.spec.containers[0].resources}{"\n"}'
+```
+
 ## 2. Authentication and Connection
 
 ### 2.1 Login
@@ -55,8 +68,10 @@ fly -t home set-pipeline -p <name> -c ci/pipeline.yml \
   -l /tmp/<name>-secrets.yml \
   -v git_branch=main
 fly -t home unpause-pipeline -p <name>
+fly -t home check-resource -r <name>/<resource>
 ```
 - `-l /tmp/<name>-secrets.yml` (or equivalent secrets vars file) is mandatory for this environment.
+- Re-validate critical resources with `fly check-resource` immediately after `set-pipeline`.
 
 ### 3.2 Pause / Unpause / Destroy
 ```bash
@@ -173,6 +188,14 @@ kubectl rollout status deploy/concourse-web -n concourse
 ```bash
 kubectl get secret -n concourse
 fly -t home watch -b <build-id>
+```
+
+If the failure includes `connection refused` against `concourse-postgresql`:
+```bash
+kubectl -n concourse describe pod concourse-postgresql-0 | sed -n '/Last State/,+8p'
+kubectl -n concourse get sts concourse-postgresql \
+  -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}{.spec.template.spec.containers[0].resources}{"\n"}'
+fly -t home check-resource -r web-app-template/update-gitops-backend-values
 ```
 
 ### 4.3 Worker Not Responding

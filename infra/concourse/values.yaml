@@ -32,11 +32,18 @@ postgresql:
   enabled: true
   image:
     repository: bitnami/postgresql
-    tag: latest
+    tag: "17.5.0"
   primary:
     extraEnvVars:
       - name: OPENSSL_FIPS
         value: "no"
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
   persistence:
     enabled: true
     storageClass: local-path
