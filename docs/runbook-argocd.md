@@ -120,3 +120,13 @@ argocd app list
 argocd app wait <critical-app> --health --timeout 300
 ```
 - Expected: critical apps become `Synced` and `Healthy`.
+
+## 6. Notes: AppProject `apps` Whitelist (cmd_047)
+- `bootstrap/root-app/project-apps.yaml` の `namespaceResourceWhitelist` は wildcard (`*/*`) を廃止し、明示リストへ変更済み。
+- 現在の許可対象（主要）:
+  - core: `ConfigMap`, `Secret`, `Service`, `ServiceAccount`, `PersistentVolumeClaim`
+  - workloads: `Deployment`, `StatefulSet`, `DaemonSet`, `Job`, `CronJob`
+  - network/policy: `Ingress`, `NetworkPolicy`, `HorizontalPodAutoscaler`, `PodDisruptionBudget`
+  - RBAC: `Role`, `RoleBinding`
+  - Argo/Secret CR: `argoproj.io/Application`, `bitnami.com/SealedSecret`
+- 追加の kind が必要になった場合は、sync error を確認して最小権限で whitelist に追記すること。
