@@ -33,12 +33,16 @@ spec:
       kind: ServiceAccount
     - group: ''
       kind: PersistentVolumeClaim
+    - group: ''
+      kind: Pod
     - group: apps
       kind: Deployment
     - group: apps
       kind: StatefulSet
     - group: apps
       kind: DaemonSet
+    - group: apps
+      kind: ReplicaSet
     - group: batch
       kind: Job
     - group: batch
