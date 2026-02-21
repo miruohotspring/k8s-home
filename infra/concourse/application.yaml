@@ -15,9 +15,6 @@ spec:
     - repoURL: git@github.com:miruohotspring/k8s-home.git
       targetRevision: main
       ref: values
-    - repoURL: git@github.com:miruohotspring/k8s-home.git
-      targetRevision: main
-      path: infra/concourse/extras
   destination:
     server: https://kubernetes.default.svc
     namespace: concourse

@@ -13,9 +13,6 @@ concourse:
     replicas: 1
 
 web:
-  env:
-    - name: CONCOURSE_KUBERNETES_CLUSTER_NAMESPACE
-      value: concourse
   ingress:
     enabled: true
     ingressClassName: nginx
