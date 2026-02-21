@@ -13,7 +13,7 @@ spec:
         valueFiles:
           - $values/infra/sealed-secrets/values.yaml
     - repoURL: git@github.com:miruohotspring/k8s-home.git
-      targetRevision: v0.2.0
+      targetRevision: v0.2.2
       ref: values
   destination:
     server: https://kubernetes.default.svc
