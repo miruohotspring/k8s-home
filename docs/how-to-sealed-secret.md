@@ -28,10 +28,10 @@ Save as `telegram-creds-secret.yaml`.
 
 ```bash
 kubeseal --format yaml \
-  --controller-namespace sealed-secrets \
-  --controller-name sealed-secrets \
-  < telegram-creds-secret.yaml \
-  > k8s-home/infra/concourse/sealed-telegram-creds.yaml
+  --controller-namespace kube-system \
+  --controller-name sealed-secrets-controller \
+  < ./secrets/telegram-creds-secret.yaml \
+  > ./infra/concourse/sealed-telegram-creds.yaml
 ```
 
 ## 4. Place under `k8s-home/infra/concourse/` and push
