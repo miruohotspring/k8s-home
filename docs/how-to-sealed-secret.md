@@ -31,7 +31,7 @@ kubeseal --format yaml \
   --controller-namespace kube-system \
   --controller-name sealed-secrets-controller \
   < ./secrets/telegram-creds-secret.yaml \
-  > ./infra/concourse/sealed-telegram-creds.yaml
+  > ./infra/secrets/telegram-creds-sealed.yaml
 ```
 
 ## 4. Place under `k8s-home/infra/concourse/` and push
