@@ -7,7 +7,7 @@ spec:
   project: apps
   source:
     repoURL: git@github.com:miruohotspring/k8s-home.git
-    targetRevision: main
+    targetRevision: v0.2.0
     path: apps/argocd
   destination:
     server: https://kubernetes.default.svc
