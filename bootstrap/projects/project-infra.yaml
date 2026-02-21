@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infra
+  namespace: argocd
+spec:
+  description: Infrastructure applications for the home cluster
+  sourceRepos:
+    - git@github.com:miruohotspring/k8s-home.git
+    - https://kubernetes.github.io/ingress-nginx
+    - https://argoproj.github.io/argo-helm
+    - https://bitnami-labs.github.io/sealed-secrets
+    - https://concourse-charts.storage.googleapis.com/
+  destinations:
+    - namespace: ingress-nginx
+      server: https://kubernetes.default.svc
+    - namespace: cloudflared
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+    - namespace: concourse
+      server: https://kubernetes.default.svc
+    - namespace: concourse-main
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
