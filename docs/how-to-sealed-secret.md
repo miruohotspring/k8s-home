@@ -1,4 +1,8 @@
-# How To: Create SealedSecret for Concourse Telegram Credentials
+# How To: Create SealedSecret for Concourse Pipeline
+
+### 前提
+- k8s-homeがセットアップ済み
+- アプリケーションのリポジトリに`pipeline.yml`を作成済み
 
 ## 1. Install kubeseal (0.27.x recommended)
 
@@ -8,47 +12,53 @@ curl -sL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KU
   | tar -xz kubeseal && sudo install -m 755 kubeseal /usr/local/bin/
 ```
 
-## 2. Create Secret YAML (`telegram-creds`, namespace: `concourse`)
+## 2. Create Secret YAML
 
+- Create `*-secret.yaml` file in `secrets/` directory
+- This file will be git ignored
+
+### `secrets/your-credential-name-secret.yaml`
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: telegram-creds
+  name: your-credential-name
   namespace: concourse
 type: Opaque
 stringData:
-  bot_token: "YOUR_BOT_TOKEN"
-  chat_id: "YOUR_CHAT_ID"
+  some_id: "SOME_ID_VALUE"
+  some_secret_key: "SOME_SECRET_KEY_VALUE"
 ```
 
-Save as `telegram-creds-secret.yaml`.
-
 ## 3. Convert to SealedSecret
+
+- `kubeseal`コマンドを使用して、sealed.yamlをinfra/配下の各アプリケーションディレクトリに配置します
 
 ```bash
 kubeseal --format yaml \
   --controller-namespace kube-system \
   --controller-name sealed-secrets-controller \
-  < ./secrets/telegram-creds-secret.yaml \
-  > ./infra/secrets/telegram-creds-sealed.yaml
+  < ./secrets/your-credential-name-secret.yaml \
+  > ./infra/{application}/your-credential-name-sealed.yaml
 ```
 
-## 4. Place under `k8s-home/infra/concourse/` and push
+## 4. Apply to Concourse Application
 
-- Commit and push `k8s-home/infra/concourse/sealed-telegram-creds.yaml`.
+- `git commit` and `git push`
 - Argo CD will auto-apply it via the concourse Application.
-- `bitnami.com/SealedSecret` is already included in the infra AppProject whitelist.
 
 ## 5. Inject vars into Concourse pipeline
 
-```bash
-# credentials.yml（.gitignore に追加済み）
-telegram-creds:
-  bot_token: YOUR_BOT_TOKEN
-  chat_id: YOUR_CHAT_ID
+Move to your application repository. In your `pipeline.yml`,
 
-fly -t home set-pipeline -p web-app-template \
-  -c ci/pipeline.yml \
-  -l credentials.yml
+```yaml
+params:
+  SOME_ID: ((your-credential-name.some_id))
+  SOME_SECRET_KEY: ((telegram-creds.some_secret_key))
+```
+
+Finally, set pipeline:
+
+```bash
+fly -t home set-pipeline -p web-app-template -c ci/pipeline.yml
 ```
