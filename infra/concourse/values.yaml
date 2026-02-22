@@ -2,24 +2,15 @@ concourse:
   web:
     externalUrl: https://concourse.miruohotspring.net
     kubernetes:
-      # Enable Kubernetes credential manager to read Secrets from concourse namespace.
       enabled: true
     auth:
       mainTeam:
         localUser: admin
     localAuth:
       enabled: true
-  worker:
-    replicas: 1
-
-web:
-  ingress:
-    enabled: true
-    ingressClassName: nginx
-    hosts:
-      - concourse.miruohotspring.net
 
 worker:
+  replicas: 1
   resources:
     requests:
       cpu: 500m
@@ -28,27 +19,33 @@ worker:
       cpu: "1"
       memory: 2Gi
 
+web:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - concourse.miruohotspring.net
+
 postgresql:
   enabled: true
-  image:
-    repository: bitnami/postgresql
-    digest: "sha256:c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5"
-  primary:
-    extraEnvVars:
-      - name: OPENSSL_FIPS
-        value: "no"
-    resources:
-      requests:
-        cpu: 250m
-        memory: 512Mi
-      limits:
-        cpu: "1"
-        memory: 1Gi
+  image: "postgres"
+  imageTag: "17.6"
+  version: 17
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
   persistence:
     enabled: true
     storageClass: local-path
-    size: 10Gi
+    resources:
+      requests:
+        storage: 10Gi
 
 secrets:
-  # Manage concourse-web / concourse-worker Secrets via SealedSecret (GitOps)
+  # SealedSecretを使う
   create: false
