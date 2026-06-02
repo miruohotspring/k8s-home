@@ -10,6 +10,7 @@ spec:
     - https://concourse-charts.storage.googleapis.com/
     - https://github.com/miruohotspring/web-app-template.git
     - git@github.com:miruohotspring/web-app-example-git-ops.git
+    - https://github.com/gammaLaboratory/jarvis-miruo-v2.git
   destinations:
     - namespace: concourse
       server: https://kubernetes.default.svc
@@ -18,6 +19,10 @@ spec:
     - namespace: argocd
       server: https://kubernetes.default.svc
     - namespace: example-dev
+      server: https://kubernetes.default.svc
+    - namespace: m3usick-dev
+      server: https://kubernetes.default.svc
+    - namespace: m3usick-prod
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ''

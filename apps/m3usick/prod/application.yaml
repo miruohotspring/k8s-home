@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: m3usick-prod
+  namespace: argocd
+spec:
+  project: apps
+  source:
+    repoURL: https://github.com/gammaLaboratory/jarvis-miruo-v2.git
+    targetRevision: main
+    path: projects/m3usick/app/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: m3usick-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
