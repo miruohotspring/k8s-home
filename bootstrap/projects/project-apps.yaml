@@ -10,7 +10,7 @@ spec:
     - https://concourse-charts.storage.googleapis.com/
     - https://github.com/miruohotspring/web-app-template.git
     - git@github.com:miruohotspring/web-app-example-git-ops.git
-    - https://github.com/gammaLaboratory/jarvis-miruo-v2.git
+    - https://github.com/gammaLaboratory/m3usick-gitops.git
   destinations:
     - namespace: concourse
       server: https://kubernetes.default.svc
