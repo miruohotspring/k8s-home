@@ -23,8 +23,8 @@ fly -t home watch -j <pipeline>/<job>
 ```
 
 ### 1.4 Concourse PostgreSQL Baseline (GitOps)
-- PostgreSQL image must be pinned in `infra/concourse/values.yaml` using `image.digest` (`latest` is forbidden).
-- Current baseline: `bitnami/postgresql@sha256:c47e54a69b39aa97d4405d68ea02bf2ffe06b646748e2ddf9c761416ead6acd5`.
+- PostgreSQL image is managed in `infra/concourse/values.yaml`; floating `latest` is forbidden.
+- Current manifest and live baseline: `postgres:17.6`.
 - Resource expectation for `concourse-postgresql`:
   - `requests`: `cpu=250m`, `memory=512Mi`
   - `limits`: `cpu=1`, `memory=1Gi`
@@ -72,14 +72,16 @@ kubectl logs -n concourse deploy/concourse-web --tail=200
 
 ### 3.1 Register / Update Pipeline
 ```bash
-fly -t home set-pipeline -p <name> -c ci/pipeline.yml \
-  -l ci/vars/<env>.yml \
-  -l /tmp/<name>-secrets.yml \
-  -v git_branch=main
+# Preferred when the repository provides a checked-in wrapper:
+./ci/set-pipeline.sh
+
+# Direct fallback; add -l only for a non-secret vars file that exists in that repo:
+fly -t home set-pipeline -p <name> -c ci/pipeline.yml --non-interactive
 fly -t home unpause-pipeline -p <name>
 fly -t home check-resource -r <name>/<resource>
 ```
-- `-l /tmp/<name>-secrets.yml` (or equivalent secrets vars file) is mandatory for this environment.
+- Secrets are normally resolved at runtime from Kubernetes; a local secrets vars file is
+  only for a scoped migration or emergency override.
 - Re-validate critical resources with `fly check-resource` immediately after `set-pipeline`.
 
 ### 3.2 Pause / Unpause / Destroy
@@ -92,8 +94,13 @@ fly -t home destroy-pipeline -p <name>
 ### 3.3 Variable Supply (Secrets and Runtime Vars)
 - Non-secret vars: keep in `ci/vars/<env>.yml` and review in PR.
 - Secret vars: do not hardcode in pipeline YAML.
-- Concourse is configured without Kubernetes credential manager, so secrets must be injected at `set-pipeline` time with `-l <secrets-file>`.
-- `fly set-pipeline` must always include a dedicated secrets vars file (example: `/tmp/web-app-template-secrets.yml`).
+- Concourse is configured with the Kubernetes credential manager:
+  - `CONCOURSE_KUBERNETES_IN_CLUSTER=true`
+  - `CONCOURSE_KUBERNETES_NAMESPACE_PREFIX=concourse-`
+- The `main` team's `((secret-name.key-name))` references resolve against Kubernetes
+  Secrets in `concourse-main`.
+- Keep repository-scoped deploy keys separate; do not reuse a generic key between
+  unrelated repositories or pipelines.
 - Minimal deployment variables for web apps:
   - `image_tag`
   - `ecr_registry`
@@ -103,12 +110,25 @@ fly -t home destroy-pipeline -p <name>
 
 Example:
 ```bash
-fly -t home set-pipeline -p web-app-template -c ci/pipeline.yml \
-  -l /tmp/web-app-template-secrets.yml \
-  -v image_tag=$(git rev-parse --short HEAD)
+./ci/set-pipeline.sh
 ```
 
 ### 3.4 Credential運用
+
+The source of truth is the GitOps-managed SealedSecrets under
+`infra/secrets/*-sealed.yaml`, which create runtime Secrets in `concourse-main`.
+`concourse-web` reads them through `RoleBinding/concourse-web-main`.
+
+Repository-specific references currently include:
+
+- m3usick app read: `((concourse-github-ssh-app.private_key))`
+- m3usick GitOps write: `((concourse-github-ssh.private_key))`
+- web-app-template app read: `((web-app-template-github-ssh-app.private_key))`
+- web-app-template GitOps write: `((web-app-template-github-ssh-gitops.private_key))`
+- AWS runtime credentials: `((concourse-aws-creds.<key>))`
+
+Use a temporary local vars file only for a migration or emergency override. It must use
+`mktemp` and `trap` and must not become a second long-lived source of truth.
 
 Temporary secrets vars file handling (`mktemp` + `trap` required):
 ```bash
@@ -118,9 +138,9 @@ trap cleanup EXIT INT TERM
 chmod 600 "$tmp_vars"
 
 cat >"$tmp_vars" <<'EOF'
-"concourse-github-ssh-app.private_key": |
+"web-app-template-github-ssh-app.private_key": |
   <PRIVATE_KEY_PEM>
-"concourse-github-ssh.private_key": |
+"web-app-template-github-ssh-gitops.private_key": |
   <PRIVATE_KEY_PEM>
 "concourse-aws-creds.aws_access_key_id": "<AWS_ACCESS_KEY_ID>"
 "concourse-aws-creds.aws_secret_access_key": "<AWS_SECRET_ACCESS_KEY>"
@@ -128,7 +148,6 @@ cat >"$tmp_vars" <<'EOF'
 EOF
 
 fly -t home set-pipeline -p web-app-template -c ci/pipeline.yml \
-  -l ci/vars/prod.yml \
   -l "$tmp_vars" \
   --check-creds
 ```
@@ -155,26 +174,27 @@ Emergency rotation triggers (rotate immediately):
 - Repeated authentication failures or suspicious audit log events.
 
 Rotation procedure highlights:
-1. Generate/register a new GitHub deploy key, then update secret source used for `set-pipeline`.
-2. Create a new AWS access key, update the secret source, and prepare a new secrets vars file.
-3. Re-apply pipelines with `fly set-pipeline --check-creds`.
-4. Run `fly check-resource` on key resources.
-5. Disable and delete old credentials only after verification passes.
+1. Generate/register a repository-scoped GitHub deploy key or a new AWS access key.
+2. Reseal the matching `infra/secrets/*-sealed.yaml` resource.
+3. Sync `platform-secrets` and verify the expected Secret name and keys in `concourse-main`
+   without printing credential values.
+4. Run `fly check-resource` on every affected resource.
+5. Disable and delete old credentials only after read/write behavior is verified.
 
 ### 3.6 Verification
 
 After credential updates or rotation, run:
 ```bash
-fly -t home set-pipeline -p <name> -c ci/pipeline.yml \
-  -l ci/vars/<env>.yml \
-  -l "$tmp_vars" \
-  --check-creds
+kubectl -n argocd get app platform-secrets
+kubectl -n concourse-main get secret
+kubectl -n concourse-main get rolebinding concourse-web-main
 
 fly -t home check-resource -r <name>/<resource>
 fly -t home check-resource -r <name>/<resource2>
 fly -t home jobs -p <name>
 ```
-- Expected: `set-pipeline --check-creds` returns no missing/invalid credential errors.
+- Expected: `platform-secrets` is `Synced/Healthy`, required runtime Secrets exist in
+  `concourse-main`, and `concourse-web` can read them through the scoped binding.
 - Expected: each `check-resource` succeeds and downstream jobs become runnable.
 
 ## 4. Incident Recovery
@@ -195,7 +215,8 @@ kubectl rollout status deploy/concourse-web -n concourse
 3. Re-run after fixing inputs.
 
 ```bash
-kubectl get secret -n concourse
+kubectl get secret -n concourse-main
+kubectl get rolebinding -n concourse-main concourse-web-main
 fly -t home watch -b <build-id>
 ```
 

@@ -151,12 +151,17 @@ kubectl -n argocd get app root-app concourse platform-secrets -o wide
 argocd app get root-app
 ```
 
-### 5.2 cmd_035 reflected changes (important)
+### 5.2 Concourse credential namespace
 
-- `concourse-main` dependency has been removed from credential flow.
-- Do not revive legacy `concourse-main` namespace assumptions.
-- Concourse credential handling follows current `concourse` namespace and current runbook:
-  - `docs/runbook-concourse.md` section 3.4-3.6.
+- Concourse uses its Kubernetes credential manager.
+- `concourse.web.kubernetes.enabled: true` renders
+  `CONCOURSE_KUBERNETES_IN_CLUSTER=true` and
+  `CONCOURSE_KUBERNETES_NAMESPACE_PREFIX=concourse-`.
+- Variables for pipelines in the `main` team are resolved from Secrets in the
+  `concourse-main` namespace.
+- Do not remove `concourse-main`, its credential Secrets, or
+  `RoleBinding/concourse-web-main` while pipelines depend on Kubernetes credential lookup.
+- See `docs/runbook-concourse.md` sections 3.3-3.6 for source-of-truth and verification.
 
 ## 6. Minimal Recovery Path When Blocked
 
