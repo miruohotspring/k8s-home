@@ -59,15 +59,47 @@ def main() -> None:
         "platform-admins",
         "not_configured_action: configure",
         "device_classes: [totp, static]",
-        "session_duration: hours=12",
+        "session_duration: days=365",
         "remember_me_offset: seconds=0",
         "remember_device: seconds=0",
+        "access_token_validity: days=365",
+        "refresh_token_validity: days=365",
         "https://argocd.miruohotspring.net/auth/callback",
         "https://concourse.miruohotspring.net/sky/issuer/callback",
         "AUTHENTIK_ARGOCD_CLIENT_SECRET",
         "AUTHENTIK_CONCOURSE_CLIENT_SECRET",
+        "slug: platform-invitation-enrollment",
+        "designation: enrollment",
+        "authentication: require_unauthenticated",
+        "authentik_stages_invitation.invitationstage",
+        "continue_flow_without_invitation: false",
+        "field_key: email",
+        "field_key: password",
+        "field_key: password_repeat",
+        "user_creation_mode: always_create",
+        "user_type: internal",
     ):
         assert expected in blueprint, f"blueprint missing {expected}"
+    assert blueprint.count("access_token_validity: days=365") == 2
+    assert blueprint.count("refresh_token_validity: days=365") == 2
+    assert "create_users_group:" not in blueprint
+
+    invitation_stage = blueprint.index("authentik_stages_invitation.invitationstage")
+    credentials_stage = blueprint.index("name: platform-invitation-prompt-credentials")
+    details_stage = blueprint.index("name: platform-invitation-prompt-details")
+    user_write_stage = blueprint.index("authentik_stages_user_write.userwritestage")
+    assert invitation_stage < credentials_stage < details_stage < user_write_stage
+
+    runbook = (ROOT / "docs/runbook-authentik.md").read_text()
+    for expected in (
+        "Directory > Invitations",
+        "platform-invitation-enrollment",
+        "Single use",
+        "24 hours",
+        "Copy Link",
+        "platform-admins",
+    ):
+        assert expected in runbook, f"runbook missing invitation guidance: {expected}"
 
     authentik_render = docs(
         run(
@@ -129,7 +161,7 @@ def main() -> None:
     assert 'requestedScopes: ["openid", "profile", "email", "groups"]' in oidc
     assert argocd_cm["data"]["admin.enabled"] == "true"
     params = find(argocd_render, "ConfigMap", "argocd-cmd-params-cm")
-    assert params["data"]["users.session.duration"] == "12h"
+    assert params["data"]["users.session.duration"] == "8760h"
     rbac = find(argocd_render, "ConfigMap", "argocd-rbac-cm")
     assert "g, platform-admins, role:admin" in rbac["data"]["policy.csv"]
 
@@ -155,7 +187,7 @@ def main() -> None:
     assert env["CONCOURSE_OIDC_SCOPE"]["value"] == "profile,email,groups"
     assert env["CONCOURSE_OIDC_GROUPS_KEY"]["value"] == "groups"
     assert env["CONCOURSE_MAIN_TEAM_OIDC_GROUP"]["value"] == "platform-admins"
-    assert env["CONCOURSE_AUTH_DURATION"]["value"] == "12h"
+    assert env["CONCOURSE_AUTH_DURATION"]["value"] == "8760h"
     assert "CONCOURSE_ADD_LOCAL_USER" in env
     assert env["CONCOURSE_OIDC_CLIENT_SECRET"]["valueFrom"]["secretKeyRef"]["key"] == "oidc-client-secret"
 

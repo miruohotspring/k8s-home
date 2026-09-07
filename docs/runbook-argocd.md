@@ -28,7 +28,7 @@ argocd app wait <app-name> --health --timeout 300
 
 ## 2. Authentication and Password Management
 
-Primary human authentication uses authentik OIDC with email address, password, and TOTP. The session lifetime is 12 hours. See `docs/runbook-authentik.md` for enrollment, verification, backup, and break-glass procedures.
+Primary human authentication uses authentik OIDC with email address, password, and TOTP. The session lifetime is 365 days. See `docs/runbook-authentik.md` for enrollment, verification, backup, session revocation, and break-glass procedures.
 
 ### 2.1 SSO Login
 
