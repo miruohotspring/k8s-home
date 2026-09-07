@@ -31,11 +31,32 @@ Expected:
 - The health endpoint returns HTTP 200.
 - The `k8s-home platform authentication` blueprint is `Successful`.
 
-If the public hostname is not configured, add the DNS route for the existing tunnel and configure its public hostname to forward to the ingress-nginx service:
+If the public hostname is not configured, add the DNS route for the existing tunnel:
 
 ```bash
 cloudflared tunnel route dns k8s-home auth.miruohotspring.net
 ```
+
+The `k8s-home` tunnel is remotely managed. Add or update its ingress rule through the Cloudflare API/CLI workflow while preserving every existing rule and the final `http_status:404` catch-all:
+
+```yaml
+hostname: auth.miruohotspring.net
+service: https://ingress-nginx-controller.ingress-nginx.svc.cluster.local:443
+originRequest:
+  noTLSVerify: true
+```
+
+The HTTPS origin is intentional: ingress-nginx must pass `X-Forwarded-Proto: https` so authentik publishes HTTPS OIDC issuer URLs. Using the otherwise-common HTTP port 80 makes authentik publish an `http://` issuer and Concourse rejects it. `noTLSVerify` applies only to the tunnel-to-ingress internal hop because ingress-nginx uses its internal/default certificate.
+
+Verify the route and both OIDC issuers:
+
+```bash
+curl -fsS https://auth.miruohotspring.net/-/health/live/
+curl -fsS https://auth.miruohotspring.net/application/o/argocd/.well-known/openid-configuration
+curl -fsS https://auth.miruohotspring.net/application/o/concourse/.well-known/openid-configuration
+```
+
+Both discovery documents must return their corresponding `https://auth.miruohotspring.net/application/o/.../` issuer.
 
 ## 3. First-time initialization
 
