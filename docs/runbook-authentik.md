@@ -103,7 +103,7 @@ fly -t home teams
 fly -t home pipelines
 ```
 
-Do not disable either local administrator unless all checks above pass.
+Do not disable either local administrator unless all checks above pass and at least one `pg_restore --list`-validated dump has been copied to encrypted off-cluster storage.
 
 ## 6. Disable routine local login after verification
 
@@ -171,6 +171,7 @@ EOF
 kubectl -n authentik wait --for=condition=Ready pod/authentik-backup-export --timeout=2m
 kubectl -n authentik exec authentik-backup-export -- sh -c 'ls -1t /backup/authentik-*.dump'
 kubectl -n authentik cp authentik-backup-export:/backup/<DUMP_FILE> ./<DUMP_FILE>
+docker run --rm -v "$PWD:/backup:ro" postgres:17.11-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0 pg_restore --list /backup/<DUMP_FILE> >/dev/null
 kubectl -n authentik delete pod authentik-backup-export
 ```
 

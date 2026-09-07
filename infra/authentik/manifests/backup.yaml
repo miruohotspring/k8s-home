@@ -37,7 +37,9 @@ spec:
               args:
                 - |
                   umask 077
-                  pg_dump --format=custom --file="/backup/authentik-$(date -u +%Y%m%dT%H%M%SZ).dump" authentik
+                  dump="/backup/authentik-$(date -u +%Y%m%dT%H%M%SZ).dump"
+                  pg_dump --format=custom --file="$dump" authentik
+                  pg_restore --list "$dump" >/dev/null
                   find /backup -type f -name 'authentik-*.dump' -mtime +14 -delete
               env:
                 - name: PGHOST

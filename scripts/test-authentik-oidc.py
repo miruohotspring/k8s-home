@@ -114,7 +114,12 @@ def main() -> None:
     manifest_render = docs(run("kubectl", "kustomize", "infra/authentik/manifests"))
     find(manifest_render, "ConfigMap", "authentik-blueprints")
     find(manifest_render, "PersistentVolumeClaim", "authentik-postgresql-backups")
-    find(manifest_render, "CronJob", "authentik-postgresql-backup")
+    backup = find(manifest_render, "CronJob", "authentik-postgresql-backup")
+    backup_script = backup["spec"]["jobTemplate"]["spec"]["template"]["spec"][
+        "containers"
+    ][0]["args"][0]
+    assert "pg_dump --format=custom" in backup_script
+    assert 'pg_restore --list "$dump"' in backup_script
 
     argocd_render = docs(run("kubectl", "kustomize", "apps/argocd"))
     argocd_cm = find(argocd_render, "ConfigMap", "argocd-cm")
