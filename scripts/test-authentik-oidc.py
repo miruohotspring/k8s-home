@@ -40,7 +40,7 @@ def main() -> None:
     assert chart["targetRevision"] == "2026.8.1"
 
     infra_project = yaml.safe_load(
-        (ROOT / "bootstrap/root-app/project-infra.yaml").read_text()
+        (ROOT / "bootstrap/projects/project-infra.yaml").read_text()
     )
     assert "https://charts.goauthentik.io" in infra_project["spec"]["sourceRepos"]
     authentik_destination = {
@@ -49,7 +49,7 @@ def main() -> None:
     }
     assert authentik_destination in infra_project["spec"]["destinations"]
     apps_project = yaml.safe_load(
-        (ROOT / "bootstrap/root-app/project-apps.yaml").read_text()
+        (ROOT / "bootstrap/projects/project-apps.yaml").read_text()
     )
     assert authentik_destination in apps_project["spec"]["destinations"]
 
