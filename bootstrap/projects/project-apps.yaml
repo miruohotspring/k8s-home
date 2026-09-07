@@ -18,6 +18,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: argocd
       server: https://kubernetes.default.svc
+    - namespace: authentik
+      server: https://kubernetes.default.svc
     - namespace: example-dev
       server: https://kubernetes.default.svc
     - namespace: m3usick-dev
