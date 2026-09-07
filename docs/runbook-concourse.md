@@ -37,15 +37,24 @@ kubectl -n concourse get sts concourse-postgresql \
 
 ## 2. Authentication and Connection
 
-### 2.1 Login
+Primary human authentication uses authentik OIDC with email address, password, and TOTP. The session lifetime is 12 hours. The `platform-admins` authentik group maps to the Concourse `main` team. See `docs/runbook-authentik.md` for enrollment and recovery.
+
+### 2.1 SSO Login
+
 ```bash
 fly -t home login -c https://concourse.miruohotspring.net
+```
+
+Select **Authentik** in the browser and verify team membership:
+
+```bash
+fly -t home teams
 ```
 
 ### 2.2 Token Refresh
 - `fly` token is automatically refreshed while session is valid.
 - If `401 unauthorized` appears, run login again.
-- If browser SSO callback fails, use user/password directly:
+- If browser SSO callback fails during migration, use the retained break-glass local account directly:
 
 ```bash
 fly -t home login -c https://concourse.miruohotspring.net -u admin -p '<PASSWORD>'

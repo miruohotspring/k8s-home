@@ -5,13 +5,14 @@
 ## Domain Placeholder Note
 
 本READMEに出る `argocd.<YOUR_DOMAIN>` / `concourse.<YOUR_DOMAIN>` / `*.<YOUR_DOMAIN>` はプレースホルダです。**実際の環境に合わせて `<YOUR_DOMAIN>` を必ず置き換えてください。**
-このリポジトリの現在の実運用例は `argocd.miruohotspring.net` / `concourse.miruohotspring.net` です。
+このリポジトリの現在の実運用例は `auth.miruohotspring.net` / `argocd.miruohotspring.net` / `concourse.miruohotspring.net` です。
 
 また Secret の実値は Git に保存せず、`kubectl create secret` もしくは将来的に **SOPS / ExternalSecrets** で管理することを推奨します。
 
 ## Operational Docs
 
 - Proxmox初期化復元: `docs/bootstrap-proxmox.md`
+- authentik/OIDC運用: `docs/runbook-authentik.md`
 - Argo CD運用: `docs/runbook-argocd.md`
 - Concourse運用: `docs/runbook-concourse.md`
 - Sealed Secrets運用: `docs/sealed-secrets.md`
