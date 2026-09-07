@@ -179,6 +179,18 @@ def main() -> None:
     concourse_secret = yaml.safe_load((ROOT / "infra/secrets/concourse-web-sealed.yaml").read_text())
     assert {"oidc-client-id", "oidc-client-secret"} <= set(concourse_secret["spec"]["encryptedData"])
 
+    for filename, secret_name in (
+        ("web-app-template-github-ssh-app-sealed.yaml", "web-app-template-github-ssh-app"),
+        (
+            "web-app-template-github-ssh-gitops-sealed.yaml",
+            "web-app-template-github-ssh-gitops",
+        ),
+    ):
+        ssh_secret = yaml.safe_load((ROOT / "infra/secrets" / filename).read_text())
+        assert ssh_secret["metadata"]["name"] == secret_name
+        assert ssh_secret["metadata"]["namespace"] == "concourse-main"
+        assert "private_key" in ssh_secret["spec"]["encryptedData"]
+
     print("authentik OIDC GitOps validation passed")
 
 
