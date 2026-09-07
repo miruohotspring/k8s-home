@@ -9,7 +9,13 @@
   - Concourse: `https://concourse.miruohotspring.net`
 - Authorization group: `platform-admins`
 - Authentication: email address + password + RFC 6238 TOTP
-- Session lifetime: 12 hours
+- Session lifetime: 365 days
+
+The 365-day session is a deliberate convenience trade-off for this private platform. It
+also increases the impact of a stolen browser session. Sign out explicitly on shared or
+lost devices and revoke that user's active authentik sessions after a suspected compromise.
+The **Remember me** and **Remember device** options remain disabled because the base
+authentik session itself is persistent for 365 days.
 
 The built-in Argo CD administrator and the Concourse local administrator remain enabled during migration. Do not disable them until both OIDC paths have been verified from a private browser session.
 
@@ -74,20 +80,45 @@ https://auth.miruohotspring.net/if/flow/initial-setup/
 6. Verify one recovery code in a private browser, then generate a fresh set if authentik invalidates the tested set.
 7. Keep `akadmin` for authentik administration only; do not use it as the daily application identity.
 
-## 4. First daily user
+## 4. Invite a daily user
 
-Public self-registration is not enabled. Create or invite users administratively.
+Public self-registration is disabled. The GitOps-managed enrollment flow
+`platform-invitation-enrollment` requires a valid Invitation token and creates an internal
+user without creating an authenticated session. This ensures the user's first application
+login still passes through password and required TOTP validation.
 
-1. In **Directory > Users**, create a user whose username and email are both the user's unique email address.
-2. Set an initial password and require the user to replace it over a separate trusted channel if applicable.
-3. Add the user to **Directory > Groups > platform-admins**.
-4. In a private browser, start login from Argo CD or Concourse.
-5. Enter email address and password.
-6. When prompted, scan the TOTP QR code and enter the six-digit code.
-7. Open `https://auth.miruohotspring.net/if/flow/default-authenticator-static-setup/` and create static single-use recovery codes. Store them offline and separately from the TOTP device.
-8. If the TOTP device is lost, use one recovery code, remove the lost TOTP device, enroll a new one, and rotate the remaining recovery codes. An authentik administrator can reset the device if no recovery code remains.
+1. Sign in as an authentik administrator and open **Directory > Invitations**.
+2. Select **New Invitation**. Choose enrollment flow `platform-invitation-enrollment`.
+3. Use a non-sensitive slug-style name, set **Expires** to no more than **24 hours**, and
+   enable **Single use**.
+4. Optionally prefill the intended identity with **Custom attributes**. Keep username and
+   email identical for email-first login:
 
-SMTP-backed invitations and recovery may be added later. Until then, password resets and account recovery are administrator-assisted.
+   ```yaml
+   username: user@example.com
+   email: user@example.com
+   name: Example User
+   ```
+
+5. Create the invitation and select **Copy Link**. SMTP is not configured, so do not use
+   **Send via Email**. Send the URL over a trusted private channel. Treat the URL as a
+   bearer credential and never put it in Git, an issue, a PR, or a shared log.
+6. The recipient opens the link in a private browser, confirms that username and email are
+   their unique email address, enters their name, and chooses a password.
+7. After enrollment, an administrator opens **Directory > Users**, selects the user, and
+   adds them to `platform-admins` only if they should administer both Argo CD and the
+   Concourse `main` team. Do not grant authentik superuser. A user who should have less
+   privilege needs a separate group and relying-party RBAC mapping.
+8. The recipient starts a fresh login from Argo CD or Concourse. Enter email and password;
+   the platform authentication flow requires RFC 6238 TOTP enrollment before access.
+9. Open `https://auth.miruohotspring.net/if/flow/default-authenticator-static-setup/` and
+   create static single-use recovery codes. Store them offline and separately from the
+   TOTP device.
+10. Verify the invitation was consumed and cannot be reused, both OIDC applications work,
+    and only the intended group permissions were granted.
+
+To revoke an unused invitation, delete it from **Directory > Invitations**. If it expires,
+create a new invitation instead of extending or reusing the old URL.
 
 ## 5. OIDC verification gate
 

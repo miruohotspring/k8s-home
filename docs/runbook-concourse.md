@@ -37,7 +37,7 @@ kubectl -n concourse get sts concourse-postgresql \
 
 ## 2. Authentication and Connection
 
-Primary human authentication uses authentik OIDC with email address, password, and TOTP. The session lifetime is 12 hours. The `platform-admins` authentik group maps to the Concourse `main` team. See `docs/runbook-authentik.md` for enrollment and recovery.
+Primary human authentication uses authentik OIDC with email address, password, and TOTP. The session lifetime is 365 days. The `platform-admins` authentik group maps to the Concourse `main` team. See `docs/runbook-authentik.md` for enrollment, recovery, and session revocation.
 
 ### 2.1 SSO Login
 

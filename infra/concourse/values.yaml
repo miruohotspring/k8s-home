@@ -4,7 +4,7 @@ concourse:
     kubernetes:
       enabled: true
     auth:
-      duration: 12h
+      duration: 8760h
       mainTeam:
         localUser: admin
         oidc:

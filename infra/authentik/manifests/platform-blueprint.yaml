@@ -31,6 +31,145 @@ data:
         identifiers:
           name: platform-admins
 
+      # Administrators create short-lived, single-use Invitation objects in the
+      # authentik Admin interface. Invitation tokens are deliberately not
+      # checked into Git. Enrollment creates an internal user but does not log
+      # them in, so the first application login must pass the required TOTP
+      # stage in platform-authentication-flow below.
+      - model: authentik_flows.flow
+        id: platform-invitation-enrollment-flow
+        identifiers:
+          slug: platform-invitation-enrollment
+        attrs:
+          designation: enrollment
+          name: k8s-home invitation enrollment
+          title: Complete your k8s-home enrollment
+          authentication: require_unauthenticated
+
+      - model: authentik_stages_invitation.invitationstage
+        id: platform-invitation-stage
+        identifiers:
+          name: platform-invitation-required
+        attrs:
+          continue_flow_without_invitation: false
+
+      - model: authentik_stages_prompt.prompt
+        id: platform-invitation-field-username
+        identifiers:
+          name: platform-invitation-field-username
+        attrs:
+          field_key: username
+          label: Email address (username)
+          type: username
+          required: true
+          placeholder: user@example.com
+          placeholder_expression: false
+          order: 0
+
+      - model: authentik_stages_prompt.prompt
+        id: platform-invitation-field-password
+        identifiers:
+          name: platform-invitation-field-password
+        attrs:
+          field_key: password
+          label: Password
+          type: password
+          required: true
+          placeholder: Password
+          placeholder_expression: false
+          order: 1
+
+      - model: authentik_stages_prompt.prompt
+        id: platform-invitation-field-password-repeat
+        identifiers:
+          name: platform-invitation-field-password-repeat
+        attrs:
+          field_key: password_repeat
+          label: Password (repeat)
+          type: password
+          required: true
+          placeholder: Password (repeat)
+          placeholder_expression: false
+          order: 2
+
+      - model: authentik_stages_prompt.prompt
+        id: platform-invitation-field-name
+        identifiers:
+          name: platform-invitation-field-name
+        attrs:
+          field_key: name
+          label: Name
+          type: text
+          required: true
+          placeholder: Name
+          placeholder_expression: false
+          order: 0
+
+      - model: authentik_stages_prompt.prompt
+        id: platform-invitation-field-email
+        identifiers:
+          name: platform-invitation-field-email
+        attrs:
+          field_key: email
+          label: Email
+          type: email
+          required: true
+          placeholder: user@example.com
+          placeholder_expression: false
+          order: 1
+
+      - model: authentik_stages_prompt.promptstage
+        id: platform-invitation-prompt-credentials
+        identifiers:
+          name: platform-invitation-prompt-credentials
+        attrs:
+          fields:
+            - !KeyOf platform-invitation-field-username
+            - !KeyOf platform-invitation-field-password
+            - !KeyOf platform-invitation-field-password-repeat
+
+      - model: authentik_stages_prompt.promptstage
+        id: platform-invitation-prompt-details
+        identifiers:
+          name: platform-invitation-prompt-details
+        attrs:
+          fields:
+            - !KeyOf platform-invitation-field-name
+            - !KeyOf platform-invitation-field-email
+
+      - model: authentik_stages_user_write.userwritestage
+        id: platform-invitation-user-write
+        identifiers:
+          name: platform-invitation-user-write
+        attrs:
+          user_creation_mode: always_create
+          user_type: internal
+          user_path_template: users/internal
+
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          order: 5
+          stage: !KeyOf platform-invitation-stage
+          target: !KeyOf platform-invitation-enrollment-flow
+        attrs:
+          evaluate_on_plan: true
+          re_evaluate_policies: true
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          order: 10
+          stage: !KeyOf platform-invitation-prompt-credentials
+          target: !KeyOf platform-invitation-enrollment-flow
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          order: 15
+          stage: !KeyOf platform-invitation-prompt-details
+          target: !KeyOf platform-invitation-enrollment-flow
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          order: 20
+          stage: !KeyOf platform-invitation-user-write
+          target: !KeyOf platform-invitation-enrollment-flow
+
       - model: authentik_flows.flow
         id: platform-authentication-flow
         identifiers:
@@ -77,7 +216,7 @@ data:
         identifiers:
           name: platform-12-hour-login
         attrs:
-          session_duration: hours=12
+          session_duration: days=365
           remember_me_offset: seconds=0
           remember_device: seconds=0
           network_binding: no_binding
@@ -134,8 +273,8 @@ data:
           client_secret: !Env [AUTHENTIK_ARGOCD_CLIENT_SECRET, ""]
           issuer_mode: per_provider
           access_code_validity: minutes=1
-          access_token_validity: hours=12
-          refresh_token_validity: hours=12
+          access_token_validity: days=365
+          refresh_token_validity: days=365
           include_claims_in_id_token: true
           redirect_uris:
             - matching_mode: strict
@@ -172,8 +311,8 @@ data:
           client_secret: !Env [AUTHENTIK_CONCOURSE_CLIENT_SECRET, ""]
           issuer_mode: per_provider
           access_code_validity: minutes=1
-          access_token_validity: hours=12
-          refresh_token_validity: hours=12
+          access_token_validity: days=365
+          refresh_token_validity: days=365
           include_claims_in_id_token: true
           redirect_uris:
             - matching_mode: strict
