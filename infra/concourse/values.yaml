@@ -13,7 +13,7 @@ concourse:
         enabled: true
         displayName: Authentik
         issuer: https://auth.miruohotspring.net/application/o/concourse/
-        scope: groups
+        scope: profile,email,groups
         groupsKey: groups
         userNameKey: email
         skipEmailVerifiedValidation: true

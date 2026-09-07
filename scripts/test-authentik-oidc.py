@@ -152,6 +152,7 @@ def main() -> None:
     web = find(concourse_render, "Deployment", "concourse-web")
     env = {item["name"]: item for item in web["spec"]["template"]["spec"]["containers"][0]["env"]}
     assert env["CONCOURSE_OIDC_ISSUER"]["value"] == "https://auth.miruohotspring.net/application/o/concourse/"
+    assert env["CONCOURSE_OIDC_SCOPE"]["value"] == "profile,email,groups"
     assert env["CONCOURSE_OIDC_GROUPS_KEY"]["value"] == "groups"
     assert env["CONCOURSE_MAIN_TEAM_OIDC_GROUP"]["value"] == "platform-admins"
     assert env["CONCOURSE_AUTH_DURATION"]["value"] == "12h"
