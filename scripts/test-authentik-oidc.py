@@ -55,9 +55,10 @@ def main() -> None:
 
     blueprint = (ROOT / "infra/authentik/manifests/platform-blueprint.yaml").read_text()
     for expected in (
+        "Default - Static MFA setup flow",
         "platform-admins",
         "not_configured_action: configure",
-        "device_classes: [totp]",
+        "device_classes: [totp, static]",
         "session_duration: hours=12",
         "remember_me_offset: seconds=0",
         "remember_device: seconds=0",

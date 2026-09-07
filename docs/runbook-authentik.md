@@ -49,7 +49,9 @@ https://auth.miruohotspring.net/if/flow/initial-setup/
 2. Open **Admin interface** and confirm **System > Blueprints > Instances** reports `k8s-home platform authentication` as successful.
 3. Confirm the `Argo CD` and `Concourse` applications and providers exist.
 4. Sign out, then sign in again from a private browser window. The platform authentication flow now requires TOTP; scan the QR code using any RFC 6238-compatible app and enter the generated code.
-5. Keep `akadmin` for authentik administration only; do not use it as the daily application identity.
+5. Open `https://auth.miruohotspring.net/if/flow/default-authenticator-static-setup/` and create static single-use recovery codes. Store them offline and separately from the TOTP device.
+6. Verify one recovery code in a private browser, then generate a fresh set if authentik invalidates the tested set.
+7. Keep `akadmin` for authentik administration only; do not use it as the daily application identity.
 
 ## 4. First daily user
 
@@ -61,7 +63,8 @@ Public self-registration is not enabled. Create or invite users administratively
 4. In a private browser, start login from Argo CD or Concourse.
 5. Enter email address and password.
 6. When prompted, scan the TOTP QR code and enter the six-digit code.
-7. Store recovery material separately from the TOTP device.
+7. Open `https://auth.miruohotspring.net/if/flow/default-authenticator-static-setup/` and create static single-use recovery codes. Store them offline and separately from the TOTP device.
+8. If the TOTP device is lost, use one recovery code, remove the lost TOTP device, enroll a new one, and rotate the remaining recovery codes. An authentik administrator can reset the device if no recovery code remains.
 
 SMTP-backed invitations and recovery may be added later. Until then, password resets and account recovery are administrator-assisted.
 
