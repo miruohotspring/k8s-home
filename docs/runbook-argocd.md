@@ -28,24 +28,37 @@ argocd app wait <app-name> --health --timeout 300
 
 ## 2. Authentication and Password Management
 
-### 2.1 Initial Admin Password (cmd_022 reference flow)
+Primary human authentication uses authentik OIDC with email address, password, and TOTP. The session lifetime is 12 hours. See `docs/runbook-authentik.md` for enrollment, verification, backup, and break-glass procedures.
+
+### 2.1 SSO Login
+
+Web UI: select **Log in via Authentik**.
+
+```bash
+argocd login argocd.miruohotspring.net --sso
+argocd account get-user-info
+```
+
+The `platform-admins` authentik group maps to Argo CD `role:admin`.
+
+### 2.2 Break-glass Admin Password
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
-### 2.2 Login
+### 2.3 Break-glass Login
 ```bash
 argocd login argocd.miruohotspring.net --username admin --password '<PASSWORD>'
 ```
 
-### 2.3 Change Admin Password
+### 2.4 Change Admin Password
 ```bash
 argocd account update-password
 ```
 - After change, update secret source and reseal if managed via Sealed Secrets.
 
-### 2.4 Session Token Refresh
+### 2.5 Session Token Refresh
 - Re-login if CLI returns `Unauthenticated`.
 - For automation token rotation:
 
