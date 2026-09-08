@@ -52,6 +52,23 @@ class CloudDrivePlatformTest(unittest.TestCase):
                 "argocd-repo-cloud-drive-gitops",
                 {"type", "url", "sshPrivateKey"},
             ),
+            "cloud-drive-env-sealed.yaml": (
+                "cloud-drive-prod",
+                "cloud-drive-env",
+                {
+                    "DRIVE_OIDC_CLIENT_SECRET", "DRIVE_STATE_KEY", "DRIVE_CREDENTIAL_KEY",
+                    "DRIVE_D1_ACCOUNT_ID", "DRIVE_D1_DATABASE_ID", "DRIVE_D1_API_TOKEN",
+                    "DRIVE_R2_ENDPOINT", "DRIVE_R2_ACCESS_KEY_ID", "DRIVE_R2_SECRET_ACCESS_KEY",
+                },
+            ),
+            "cloud-drive-runtime-sealed.yaml": (
+                "concourse-main", "cloud-drive-runtime",
+                {"d1_account_id", "d1_database_id", "d1_api_token", "cloudflare_api_token"},
+            ),
+            "cloud-drive-r2-state-sealed.yaml": (
+                "concourse-main", "cloud-drive-r2-state",
+                {"access_key_id", "secret_access_key"},
+            ),
         }
         for filename, (namespace, name, keys) in expected.items():
             document = yaml.safe_load((ROOT / "infra/secrets" / filename).read_text())
