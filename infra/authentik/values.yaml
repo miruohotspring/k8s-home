@@ -13,6 +13,8 @@ global:
   envFrom:
     - secretRef:
         name: authentik-env
+    - secretRef:
+        name: authentik-cloud-drive-env
 
 authentik:
   # Configuration is provided by the SealedSecret-backed environment.

@@ -68,6 +68,13 @@ def main() -> None:
         "https://concourse.miruohotspring.net/sky/issuer/callback",
         "AUTHENTIK_ARGOCD_CLIENT_SECRET",
         "AUTHENTIK_CONCOURSE_CLIENT_SECRET",
+        "AUTHENTIK_CLOUD_DRIVE_CLIENT_SECRET",
+        "cloud-drive-users",
+        "users:",
+        "[username, miruohotspring]",
+        "client_id: cloud-drive-web",
+        "slug: cloud-drive-web",
+        "https://api-drive.miruohotspring.net/v1/auth/callback",
         "slug: platform-invitation-enrollment",
         "designation: enrollment",
         "authentication: require_unauthenticated",
@@ -81,7 +88,7 @@ def main() -> None:
     ):
         assert expected in blueprint, f"blueprint missing {expected}"
     assert blueprint.count("access_token_validity: days=365") == 2
-    assert blueprint.count("refresh_token_validity: days=365") == 2
+    assert blueprint.count("refresh_token_validity: days=365") == 3
     assert "create_users_group:" not in blueprint
 
     invitation_stage = blueprint.index("authentik_stages_invitation.invitationstage")
@@ -134,7 +141,8 @@ def main() -> None:
     assert server_env["AUTHENTIK_POSTGRESQL__NAME"] == "authentik"
     assert server_env["AUTHENTIK_POSTGRESQL__USER"] == "authentik"
     assert server["spec"]["template"]["spec"]["containers"][0]["envFrom"] == [
-        {"secretRef": {"name": "authentik-env"}}
+        {"secretRef": {"name": "authentik-env"}},
+        {"secretRef": {"name": "authentik-cloud-drive-env"}},
     ]
     postgres = find(authentik_render, "StatefulSet", "authentik-postgresql")
     assert (
@@ -200,6 +208,10 @@ def main() -> None:
     assert "authentik-env-sealed.yaml" in sealed
     assert "authentik-postgresql-sealed.yaml" in sealed
     assert "argocd-authentik-oidc-sealed.yaml" in sealed
+    assert "authentik-cloud-drive-env-sealed.yaml" in sealed
+    assert "AUTHENTIK_CLOUD_DRIVE_CLIENT_SECRET" in sealed[
+        "authentik-cloud-drive-env-sealed.yaml"
+    ]["spec"]["encryptedData"]
     env_keys = sealed["authentik-env-sealed.yaml"]["spec"]["encryptedData"]
     assert {
         "AUTHENTIK_SECRET_KEY",
@@ -216,6 +228,11 @@ def main() -> None:
         (
             "web-app-template-github-ssh-gitops-sealed.yaml",
             "web-app-template-github-ssh-gitops",
+        ),
+        ("cloud-drive-github-ssh-app-sealed.yaml", "cloud-drive-github-ssh-app"),
+        (
+            "cloud-drive-github-ssh-gitops-sealed.yaml",
+            "cloud-drive-github-ssh-gitops",
         ),
     ):
         ssh_secret = yaml.safe_load((ROOT / "infra/secrets" / filename).read_text())

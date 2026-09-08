@@ -36,7 +36,10 @@ class EcrSecretMirrorTest(unittest.TestCase):
         script = container["args"][0]
         compile(script, "ecr-secret-mirror.py", "exec")
         self.assertIn('SOURCE_NAMESPACE = "default"', script)
-        self.assertIn('TARGET_NAMESPACES = ("m3usick-dev", "m3usick-prod")', script)
+        self.assertIn(
+            'TARGET_NAMESPACES = ("m3usick-dev", "m3usick-prod", "cloud-drive-prod")',
+            script,
+        )
         self.assertNotIn("AWS_ACCESS_KEY", self.text)
         self.assertNotIn("AWS_SECRET", self.text)
 
@@ -47,7 +50,7 @@ class EcrSecretMirrorTest(unittest.TestCase):
         self.assertEqual(source_role["rules"][0]["verbs"], ["get"])
         self.find("RoleBinding", "ecr-secret-mirror-source", "default")
 
-        for namespace in ("m3usick-dev", "m3usick-prod"):
+        for namespace in ("m3usick-dev", "m3usick-prod", "cloud-drive-prod"):
             role = self.find("Role", "ecr-secret-mirror-target", namespace)
             self.assertEqual(
                 role["rules"][0]["verbs"],

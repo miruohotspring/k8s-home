@@ -11,6 +11,7 @@ spec:
     - https://github.com/miruohotspring/web-app-template.git
     - git@github.com:miruohotspring/web-app-example-git-ops.git
     - https://github.com/gammaLaboratory/m3usick-gitops.git
+    - git@github.com:miruohotspring/cloud-drive-gitops.git
   destinations:
     - namespace: concourse
       server: https://kubernetes.default.svc
@@ -25,6 +26,8 @@ spec:
     - namespace: m3usick-dev
       server: https://kubernetes.default.svc
     - namespace: m3usick-prod
+      server: https://kubernetes.default.svc
+    - namespace: cloud-drive-prod
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ''
