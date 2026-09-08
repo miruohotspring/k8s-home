@@ -31,6 +31,14 @@ data:
         identifiers:
           name: platform-admins
 
+      - model: authentik_core.group
+        id: cloud-drive-users
+        identifiers:
+          name: cloud-drive-users
+        attrs:
+          users:
+            - !Find [authentik_core.user, [username, miruohotspring]]
+
       # Administrators create short-lived, single-use Invitation objects in the
       # authentik Admin interface. Invitation tokens are deliberately not
       # checked into Git. Enrollment creates an internal user but does not log
@@ -336,3 +344,53 @@ data:
           provider: !KeyOf concourse-provider
           meta_launch_url: https://concourse.miruohotspring.net
           policy_engine_mode: any
+
+      - model: authentik_providers_oauth2.oauth2provider
+        id: cloud-drive-web-provider
+        identifiers:
+          name: Cloud Drive Web
+        attrs:
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          client_type: confidential
+          client_id: cloud-drive-web
+          client_secret: !Env [AUTHENTIK_CLOUD_DRIVE_CLIENT_SECRET, ""]
+          issuer_mode: per_provider
+          access_code_validity: minutes=1
+          access_token_validity: minutes=10
+          refresh_token_validity: days=365
+          include_claims_in_id_token: true
+          redirect_uris:
+            - matching_mode: strict
+              url: https://api-drive.miruohotspring.net/v1/auth/callback
+              redirect_uri_type: authorization
+          grant_types:
+            - authorization_code
+            - refresh_token
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !KeyOf platform-groups-scope
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+
+      - model: authentik_core.application
+        id: cloud-drive-web-application
+        identifiers:
+          slug: cloud-drive-web
+        attrs:
+          name: Cloud Drive
+          provider: !KeyOf cloud-drive-web-provider
+          meta_launch_url: https://drive.miruohotspring.net
+          policy_engine_mode: any
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf cloud-drive-web-application
+          group: !KeyOf cloud-drive-users
+          order: 0
+        attrs:
+          target: !KeyOf cloud-drive-web-application
+          group: !KeyOf cloud-drive-users
+          enabled: true
+          order: 0
