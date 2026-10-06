@@ -79,7 +79,7 @@ resource "cloudflare_zero_trust_access_application" "app" {
     auth_type                        = "oidc"
     access_token_lifetime            = "10m"
     allow_pkce_without_client_secret = each.value.allow_pkce_without_secret
-    grant_types                      = ["authorization_code_with_pkce", "refresh_tokens"]
+    grant_types                      = each.key == "argocd" ? ["authorization_code", "authorization_code_with_pkce", "refresh_tokens"] : ["authorization_code_with_pkce", "refresh_tokens"]
     redirect_uris                    = each.value.redirect_uris
     refresh_token_options = {
       lifetime = "719h"

@@ -33,8 +33,9 @@ class ArgoCDCloudflareOIDCContract(unittest.TestCase):
         self.assertNotIn('"groups"', self.cm)
         self.assertNotRegex(self.cm, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 
-    def test_browser_sso_uses_required_pkce(self):
-        self.assertIn("enablePKCEAuthentication: true", self.cm)
+    def test_browser_uses_stateful_confidential_flow_for_argocd_213(self):
+        self.assertIn("enablePKCEAuthentication: false", self.cm)
+        self.assertIn("clientSecret: $argocd-cloudflare-oidc:clientSecret", self.cm)
 
     def test_sealed_secret_contains_only_encrypted_generated_values(self):
         self.assertIn("kind: SealedSecret", self.sealed_secret)
