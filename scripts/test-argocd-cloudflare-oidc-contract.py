@@ -22,6 +22,20 @@ class ArgoCDCloudflareOIDCContract(unittest.TestCase):
     def test_secret_is_visible_to_argocd_settings_watcher(self):
         self.assertRegex(self.sealed_secret, r"(?m)^      labels:\n        app\.kubernetes\.io/part-of: argocd$")
 
+    def test_phase_b_oidc_uses_only_sealed_references_and_no_groups_claim(self):
+        self.assertIn("admin.enabled: \"true\"", self.cm)
+        self.assertIn("users.session.duration: \"720h\"", self.cm)
+        self.assertIn("name: Cloudflare Access", self.cm)
+        for secret_key in ("issuer", "clientID", "clientSecret"):
+            self.assertIn(f"$argocd-cloudflare-oidc:{secret_key}", self.cm)
+        self.assertIn('requestedScopes: ["openid", "profile", "email"]', self.cm)
+        self.assertNotIn("requestedIDTokenClaims", self.cm)
+        self.assertNotIn('"groups"', self.cm)
+        self.assertNotRegex(self.cm, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
+
+    def test_browser_sso_uses_required_pkce(self):
+        self.assertIn("enablePKCEAuthentication: true", self.cm)
+
     def test_sealed_secret_contains_only_encrypted_generated_values(self):
         self.assertIn("kind: SealedSecret", self.sealed_secret)
         self.assertIn("name: argocd-cloudflare-oidc", self.sealed_secret)

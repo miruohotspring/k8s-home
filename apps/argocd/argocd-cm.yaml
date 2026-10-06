@@ -8,12 +8,13 @@ metadata:
     app.kubernetes.io/part-of: argocd
 data:
   url: https://argocd.miruohotspring.net
-  # Keep the built-in administrator available until OIDC and RBAC are verified.
+  # Keep the built-in administrator available until Cloudflare OIDC and RBAC are verified.
   admin.enabled: "true"
+  users.session.duration: "720h"
   oidc.config: |
-    name: Authentik
-    issuer: https://auth.miruohotspring.net/application/o/argocd/
-    clientID: argocd
-    clientSecret: $argocd-authentik-oidc:clientSecret
-    requestedScopes: ["openid", "profile", "email", "groups"]
-    requestedIDTokenClaims: {"groups": {"essential": true}}
+    name: Cloudflare Access
+    issuer: $argocd-cloudflare-oidc:issuer
+    clientID: $argocd-cloudflare-oidc:clientID
+    clientSecret: $argocd-cloudflare-oidc:clientSecret
+    requestedScopes: ["openid", "profile", "email"]
+    enablePKCEAuthentication: true
