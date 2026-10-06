@@ -9,6 +9,21 @@
 
 また Secret の実値は Git に保存せず、`kubectl create secret` もしくは将来的に **SOPS / ExternalSecrets** で管理することを推奨します。
 
+## 開発時のセキュリティ検査
+
+初回clone後にGitleaksのcommit前hookを有効化する（`uv`とGoが必要）。hookの設定はGit管理されるが、hook本体のinstallはcloneごとに必要。
+
+```bash
+uv tool install pre-commit
+pre-commit install --install-hooks
+# staged差分を手動検査
+pre-commit run gitleaks
+```
+
+Gitleaksはstaged差分に含まれる秘密情報を検査し、検出時は値を伏せてcommitを拒否する。Git履歴全体の監査とは別であり、`--all-files`を付けてもこのhookはstaged差分を検査する。漏洩を検出したらcommitせず、必要ならcredentialを失効・再発行する。安易な除外やhookのskipで回避しない。
+
+`.github/workflows/security.yml`はPR・mainへのpush・手動実行でzizmorのworkflowスキャンを行う。pedantic設定、最小権限、Actionのcommit SHA固定、checkout credential非保持。検出時はjobが失敗し、Actions上に注釈を出す。GitHub Advanced Securityの契約や追加Secretは不要。ローカルhookの迂回を防ぐ仕組みやbranch protectionの必須チェック化は別途設定が必要。
+
 ## Operational Docs
 
 - Proxmox初期化復元: `docs/bootstrap-proxmox.md`
