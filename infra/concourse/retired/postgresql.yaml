@@ -1,0 +1,73 @@
+# Concourse chart 20.0.1 fixes PostgreSQL replicas at 1.
+# The last Argo source overrides ONLY this StatefulSet to keep it at zero.
+# Keep the chart enabled so its Secret/ConfigMap/Service and existing PVC survive.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: concourse-postgresql
+  namespace: concourse
+  labels:
+    app: concourse-postgresql
+    chart: concourse-20.0.1
+    release: concourse
+    heritage: Helm
+spec:
+  selector:
+    matchLabels:
+      app: concourse-postgresql
+  replicas: 0
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  template:
+    metadata:
+      labels:
+        app: concourse-postgresql
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: concourse-postgresql
+          image: postgres:17.6
+          resources:
+            limits:
+              cpu: "1"
+              ephemeral-storage: 2Gi
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              ephemeral-storage: 50Mi
+              memory: 512Mi
+          envFrom:
+            - configMapRef:
+                name: concourse-postgresql-env
+            - secretRef:
+                name: concourse-postgresql-connection
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - exec pg_isready -U "concourse" -d "dbname=concourse" -h 127.0.0.1 -p 5432
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - exec pg_isready -U "concourse" -d "dbname=concourse" -h 127.0.0.1 -p 5432
+          ports:
+            - name: pgsql
+              protocol: TCP
+              containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: local-path
