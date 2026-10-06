@@ -33,7 +33,12 @@ resource "cloudflare_zero_trust_organization" "this" {
   # Preserve existing organization-wide behavior; do not alter unrelated apps.
   deny_unmatched_requests                     = false
   deny_unmatched_requests_exempted_zone_names = []
-
+  # The API requires non-null fields even while enforcement remains disabled.
+  service_token_inactivity = {
+    enabled                   = false
+    action                    = "disable"
+    inactivity_threshold_days = 90
+  }
 
   mfa_config = {
     allowed_authenticators        = ["totp"]
@@ -43,8 +48,7 @@ resource "cloudflare_zero_trust_organization" "this" {
 
   lifecycle {
     prevent_destroy = true
-    # This migration does not own service-token expiry settings.
-    ignore_changes = [service_token_inactivity]
+
   }
 }
 
@@ -53,7 +57,6 @@ resource "cloudflare_zero_trust_access_application" "app" {
 
   account_id = var.cloudflare_account_id
   name       = each.value.name
-  domain     = each.value.domain
   type       = "saas"
 
   allowed_idps     = [var.email_otp_identity_provider_id]
@@ -66,6 +69,7 @@ resource "cloudflare_zero_trust_access_application" "app" {
   ]
 
   saas_app = {
+    app_launcher_url                 = each.key == "cloud-drive" ? "https://drive.miruohotspring.net" : "https://${each.value.domain}"
     auth_type                        = "oidc"
     access_token_lifetime            = "10m"
     allow_pkce_without_client_secret = each.value.allow_pkce_without_secret
