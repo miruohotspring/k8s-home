@@ -50,6 +50,7 @@ class CloudflareAccessContract(unittest.TestCase):
     def test_access_contract_is_totp_email_otp_and_720_hours(self):
         for callback in (
             "https://argocd.miruohotspring.net/auth/callback",
+            "https://argocd.miruohotspring.net/api/dex/callback",
             "https://argocd.miruohotspring.net/pkce/verify",
             "http://localhost:8085/auth/callback",
             "https://hermes.miruohotspring.net/auth/callback",
@@ -65,7 +66,7 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn('allow_pkce_without_secret = true', self.terraform)
         self.assertIn('allow_pkce_without_secret = false', self.terraform)
         self.assertIn('allow_pkce_without_client_secret = each.value.allow_pkce_without_secret', self.terraform)
-        self.assertIn('grant_types                      = each.key == "argocd" ? ["authorization_code", "authorization_code_with_pkce", "refresh_tokens"] : ["authorization_code_with_pkce", "refresh_tokens"]', self.terraform)
+        self.assertIn('grant_types                      = each.key == "argocd" ? ["authorization_code", "refresh_tokens"] : ["authorization_code_with_pkce", "refresh_tokens"]', self.terraform)
         self.assertIn('mfa_disabled           = false', self.terraform)
         self.assertNotIn('"groups"', self.terraform)
 

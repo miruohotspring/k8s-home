@@ -11,12 +11,18 @@ data:
   # Keep the built-in administrator available until Cloudflare OIDC and RBAC are verified.
   admin.enabled: "true"
   users.session.duration: "720h"
-  oidc.config: |
-    name: Cloudflare Access
-    issuer: $argocd-cloudflare-oidc:issuer
-    clientID: $argocd-cloudflare-oidc:clientID
-    clientSecret: $argocd-cloudflare-oidc:clientSecret
-    requestedScopes: ["openid", "profile", "email"]
-    # Argo 2.13 browser PKCE omits state; Cloudflare correctly requires it.
-    # Use server-side confidential code flow for Web; CLI still uses PKCE.
-    enablePKCEAuthentication: false
+  dex.config: |
+    expiry:
+      idTokens: 720h
+    oauth2:
+      skipApprovalScreen: true
+    connectors:
+      - type: oidc
+        id: cloudflare
+        name: Cloudflare Access
+        config:
+          issuer: $argocd-cloudflare-oidc:issuer
+          clientID: $argocd-cloudflare-oidc:clientID
+          clientSecret: $argocd-cloudflare-oidc:clientSecret
+          redirectURI: https://argocd.miruohotspring.net/api/dex/callback
+          scopes: ["openid", "profile", "email"]
