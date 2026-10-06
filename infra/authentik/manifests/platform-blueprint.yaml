@@ -17,7 +17,7 @@ data:
           name: hermes-users
         attrs:
           users:
-            - !Find [authentik_core.user, [username, miruohotspring]]
+            - !Find [authentik_core.user, [username, akadmin]]
       - model: authentik_providers_oauth2.oauth2provider
         id: hermes-provider
         identifiers:

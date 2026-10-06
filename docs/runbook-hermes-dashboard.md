@@ -5,7 +5,7 @@
 - Dashboard: `https://hermes.miruohotspring.net` (local WSL Hermes host, not Kubernetes).
 - IdP: `https://auth.miruohotspring.net/application/o/hermes/`.
 - GitOps source: `infra/authentik/manifests/platform-blueprint.yaml`, separate `hermes.yaml` blueprint. Existing application blueprints remain unchanged.
-- Access: dedicated `hermes-users` group; initially only the existing daily operator. Do not grant all authentik users dashboard access: Hermes exposes the host's tools and data.
+- Access: dedicated `hermes-users` group; only `akadmin`, as explicitly requested by the operator. The daily `miruohotspring` account is not admitted to Hermes; its identity and Cloud Drive access remain unchanged. Do not grant all authentik users dashboard access: Hermes exposes the host's tools and data.
 - Authentication: existing password + TOTP flow; public OIDC client with PKCE S256, exact HTTPS callback, signed ID tokens. No client secret.
 - Access/ID token lifetime: 10 minutes. Refresh grant: 365 days, with `offline_access` requested. This does not override Hermes' own session-cookie lifetime.
 
