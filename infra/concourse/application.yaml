@@ -15,6 +15,8 @@ spec:
     - repoURL: git@github.com:miruohotspring/k8s-home.git
       targetRevision: main
       ref: values
+      # Override the chart's fixed PostgreSQL replicas=1 without pruning secrets/PVCs.
+      path: infra/concourse/retired
   destination:
     server: https://kubernetes.default.svc
     namespace: concourse

@@ -22,7 +22,8 @@ concourse:
       enabled: true
 
 worker:
-  replicas: 1
+  # GitHub Actions is the sole CI writer; keep storage and rollback definitions.
+  replicas: 0
   resources:
     requests:
       cpu: 500m
@@ -32,6 +33,7 @@ worker:
       memory: 2Gi
 
 web:
+  replicas: 0
   ingress:
     enabled: true
     ingressClassName: nginx

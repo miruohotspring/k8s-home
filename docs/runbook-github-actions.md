@@ -56,6 +56,23 @@ Secretsは値を記録せず、元のKubernetes Secretと用途を示す。初�
 
 3 pipelineの移行先が実実行成功し、手動経路も検証できるまではWeb/worker/PostgreSQLを停止しない。停止時はDB backupを権限0700の退避先へ取り、PVCと復旧用定義を保持する。Argoのreconcileで復活しないGitOps上の停止設定を行い、実リソースとメモリ使用を確認する。PVC/DNS/authentikアプリ/旧AWS access keyの削除は別承認とする。
 
+## Concourseの停止設定と復旧
+
+停止設定は `infra/concourse/values.yaml` の `web.replicas: 0` / `worker.replicas: 0` と、`infra/concourse/retired/postgresql.yaml` の `spec.replicas: 0`。Chart 20.0.1はPostgreSQLを1 replicaに固定しているため、既存values sourceに`path`を付けて同じStatefulSetだけを後順位sourceで上書きする。`postgresql.enabled`はtrueのままとし、接続Secret・ConfigMap・Serviceをpruneしない。
+
+Argo CDのmulti-source仕様により、このStatefulSetの`RepeatedResourceWarning`は意図したもの。これ以外の重複や差分は許容しない。参照: `https://argo-cd.readthedocs.io/en/stable/user-guide/multiple_sources/`。停止状態でもApplicationと全17 resourcesを保持し、PVCはwhenScaled/whenDeletedともRetain。ConcourseのHTTP画面は停止に伴い利用できなくなる。DNS/ingress/authentik/旧credentialsは保持する。
+
+2026-10-06の停止前backup: `/home/miruo/.hermes/backups/concourse-retirement-20261006T092935Z/`（directory 0700、files 0600）。pipeline定義3本、build一覧、workload/PVC定義、PostgreSQL custom-format dumpを保存。ネットワークを無効にした一時PostgreSQL 17.6へ実restoreし、61 tables / 3 pipelines / 79 buildsを確認。一時DBは削除済み。秘密値をGitへ登録しない。
+
+復旧手順:
+
+1. 対象GitHub repositoryの`CI_DEPLOY_ENABLED=false`を設定・読み戻し、実行中Actionsのapply/migration/GitOps書込みが終了したことを確認する。
+2. `web.replicas` / `worker.replicas`を1へ戻し、Applicationのvalues sourceから`path: infra/concourse/retired`だけを外してPR mergeする。retired manifestは復旧時に参照されなくなる。Chartが同名PostgreSQLを1へ復元し、既存PVCを使う。
+3. Argo同期後PostgreSQL、web、workerがReadyになったことを確認。pipelineはpausedのまま保持される。必要な対象だけ`fly -t home unpause-pipeline -p <name>`し、Actionsとの二重writerを避ける。
+4. 通常復旧ではDB restore不要。PVC破損時のみ隔離したDBへdumpをrestoreして検証してから切り替える。稼働DBへ直接上書きrestoreしない。
+
+Chart更新時はretired StatefulSetと当該版renderを比較する。退役中のChart更新を無闇に行わない。
+
 ## 料金確認
 
 GitHub Actionsの予算はrepositoryでなくownerごと。2026-10-06のgammaLaboratory billing usageではActions netAmount=0を確認。個人ownerのbilling APIは現在のgh token scopeでは読めない（404/user scope不足）。無料枠残量や有料超過の無効化は未確認であり、無料を保証しない。必要最小限のrunner実行・短いartifact retentionを使い、移行後の実時間を確認する。
