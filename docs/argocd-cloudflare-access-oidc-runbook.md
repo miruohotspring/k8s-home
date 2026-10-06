@@ -11,6 +11,8 @@ This migration keeps the built-in `admin` path enabled while Cloudflare Access O
 
 ## Phase B — OIDC settings cutover
 
+With `enablePKCEAuthentication: true`, the browser SPA uses `/pkce/verify`, not the legacy server `/auth/callback`. Register both HTTPS callbacks plus the CLI loopback callback before switching. Confirm the actual browser authorization request includes S256 and the expected redirect URI. Restart only `argocd-server` after the settings change if its cached OIDC provider still redirects to the old issuer; `/api/v1/settings` updating alone does not prove that the login handler refreshed.
+
 1. Apply the separate Phase B commit after Phase A verification. It points Argo CD at the sealed Cloudflare issuer/client references, requests only `openid`, `profile`, and `email`, and sets `users.session.duration: "720h"`.
 2. Test in a fresh browser session: email OTP, enrolled TOTP, callback to Argo CD, administrator authorization, denied-user behavior, and CLI login using the loopback PKCE callback on `http://localhost:8085/auth/callback`.
 3. Argo CD v2.13.3 combines `policy.csv` with every `policy.<name>.csv` key. The parent `argocd-ingress` Application ignores only `/data/policy.cloudflare.csv` and sets `RespectIgnoreDifferences=true`, so its generated key is preserved while the base `g, platform-admins, role:admin` policy remains Git-managed.

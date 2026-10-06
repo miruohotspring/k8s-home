@@ -50,6 +50,7 @@ class CloudflareAccessContract(unittest.TestCase):
     def test_access_contract_is_totp_email_otp_and_720_hours(self):
         for callback in (
             "https://argocd.miruohotspring.net/auth/callback",
+            "https://argocd.miruohotspring.net/pkce/verify",
             "http://localhost:8085/auth/callback",
             "https://hermes.miruohotspring.net/auth/callback",
             "https://api-drive.miruohotspring.net/v1/auth/callback",
