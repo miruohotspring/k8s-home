@@ -1,0 +1,134 @@
+{
+  "terraform": {
+    "required_version": ">= 1.10.0",
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "~> 5.0"
+      }
+    },
+    "backend": {
+      "s3": {
+        "bucket": "web-app-template-tfstate-dev",
+        "key": "platform/github-actions/terraform.tfstate",
+        "region": "ap-northeast-1",
+        "encrypt": true,
+        "use_lockfile": true
+      }
+    }
+  },
+  "provider": {
+    "aws": {
+      "region": "ap-northeast-1"
+    }
+  },
+  "data": {
+    "aws_caller_identity": {
+      "current": {}
+    }
+  },
+  "resource": {
+    "aws_iam_openid_connect_provider": {
+      "github": {
+        "url": "https://token.actions.githubusercontent.com",
+        "client_id_list": [
+          "sts.amazonaws.com"
+        ],
+        "tags": {
+          "ManagedBy": "terraform",
+          "Purpose": "github-actions"
+        }
+      }
+    },
+    "aws_iam_role": {
+      "m3usick_ecr": {
+        "name": "github-actions-m3usick-ecr",
+        "assume_role_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"Federated\": \"${aws_iam_openid_connect_provider.github.arn}\"}, \"Action\": \"sts:AssumeRoleWithWebIdentity\", \"Condition\": {\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\", \"token.actions.githubusercontent.com:sub\": [\"repo:gammaLaboratory/m3usick:ref:refs/heads/develop\", \"repo:gammaLaboratory/m3usick:ref:refs/heads/main\"]}}}]}",
+        "max_session_duration": 3600,
+        "tags": {
+          "ManagedBy": "terraform",
+          "Purpose": "github-actions",
+          "Repository": "gammaLaboratory/m3usick"
+        }
+      },
+      "cloud_drive_ecr": {
+        "name": "github-actions-cloud-drive-ecr",
+        "assume_role_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"Federated\": \"${aws_iam_openid_connect_provider.github.arn}\"}, \"Action\": \"sts:AssumeRoleWithWebIdentity\", \"Condition\": {\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\", \"token.actions.githubusercontent.com:sub\": [\"repo:miruohotspring@27941972/cloud-drive@1360782637:ref:refs/heads/main\"]}}}]}",
+        "max_session_duration": 3600,
+        "tags": {
+          "ManagedBy": "terraform",
+          "Purpose": "github-actions",
+          "Repository": "miruohotspring/cloud-drive"
+        }
+      },
+      "web_app_template_ecr": {
+        "name": "github-actions-web-app-template-ecr",
+        "assume_role_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"Federated\": \"${aws_iam_openid_connect_provider.github.arn}\"}, \"Action\": \"sts:AssumeRoleWithWebIdentity\", \"Condition\": {\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\", \"token.actions.githubusercontent.com:sub\": [\"repo:miruohotspring/web-app-template:ref:refs/heads/develop\"]}}}]}",
+        "max_session_duration": 3600,
+        "tags": {
+          "ManagedBy": "terraform",
+          "Purpose": "github-actions",
+          "Repository": "miruohotspring/web-app-template"
+        }
+      },
+      "cloud_drive_terraform": {
+        "name": "github-actions-cloud-drive-terraform",
+        "assume_role_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"Federated\": \"${aws_iam_openid_connect_provider.github.arn}\"}, \"Action\": \"sts:AssumeRoleWithWebIdentity\", \"Condition\": {\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\", \"token.actions.githubusercontent.com:sub\": [\"repo:miruohotspring@27941972/cloud-drive@1360782637:ref:refs/heads/main\"]}}}]}",
+        "max_session_duration": 3600,
+        "tags": {
+          "ManagedBy": "terraform",
+          "Purpose": "github-actions",
+          "Repository": "miruohotspring/cloud-drive"
+        }
+      },
+      "web_app_template_terraform": {
+        "name": "github-actions-web-app-template-terraform",
+        "assume_role_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"Federated\": \"${aws_iam_openid_connect_provider.github.arn}\"}, \"Action\": \"sts:AssumeRoleWithWebIdentity\", \"Condition\": {\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\", \"token.actions.githubusercontent.com:sub\": [\"repo:miruohotspring/web-app-template:ref:refs/heads/develop\"]}}}]}",
+        "max_session_duration": 3600,
+        "tags": {
+          "ManagedBy": "terraform",
+          "Purpose": "github-actions",
+          "Repository": "miruohotspring/web-app-template"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "m3usick_ecr": {
+        "name": "scoped-access",
+        "role": "${aws_iam_role.m3usick_ecr.id}",
+        "policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"ecr:GetAuthorizationToken\"], \"Resource\": \"*\"}, {\"Effect\": \"Allow\", \"Action\": [\"ecr:BatchCheckLayerAvailability\", \"ecr:GetDownloadUrlForLayer\", \"ecr:BatchGetImage\", \"ecr:DescribeImages\", \"ecr:PutImage\", \"ecr:InitiateLayerUpload\", \"ecr:UploadLayerPart\", \"ecr:CompleteLayerUpload\"], \"Resource\": [\"arn:aws:ecr:ap-northeast-1:${data.aws_caller_identity.current.account_id}:repository/m3usick\"]}]}"
+      },
+      "cloud_drive_ecr": {
+        "name": "scoped-access",
+        "role": "${aws_iam_role.cloud_drive_ecr.id}",
+        "policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"ecr:GetAuthorizationToken\"], \"Resource\": \"*\"}, {\"Effect\": \"Allow\", \"Action\": [\"ecr:BatchCheckLayerAvailability\", \"ecr:GetDownloadUrlForLayer\", \"ecr:BatchGetImage\", \"ecr:DescribeImages\", \"ecr:PutImage\", \"ecr:InitiateLayerUpload\", \"ecr:UploadLayerPart\", \"ecr:CompleteLayerUpload\"], \"Resource\": [\"arn:aws:ecr:ap-northeast-1:${data.aws_caller_identity.current.account_id}:repository/cloud-drive\"]}]}"
+      },
+      "web_app_template_ecr": {
+        "name": "scoped-access",
+        "role": "${aws_iam_role.web_app_template_ecr.id}",
+        "policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"ecr:GetAuthorizationToken\"], \"Resource\": \"*\"}, {\"Effect\": \"Allow\", \"Action\": [\"ecr:BatchCheckLayerAvailability\", \"ecr:GetDownloadUrlForLayer\", \"ecr:BatchGetImage\", \"ecr:DescribeImages\", \"ecr:PutImage\", \"ecr:InitiateLayerUpload\", \"ecr:UploadLayerPart\", \"ecr:CompleteLayerUpload\"], \"Resource\": [\"arn:aws:ecr:ap-northeast-1:${data.aws_caller_identity.current.account_id}:repository/web-app-template-api\"]}]}"
+      },
+      "cloud_drive_terraform": {
+        "name": "scoped-access",
+        "role": "${aws_iam_role.cloud_drive_terraform.id}",
+        "policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"ecr:DescribeRepositories\", \"ecr:CreateRepository\", \"ecr:ListTagsForResource\", \"ecr:TagResource\", \"ecr:UntagResource\", \"ecr:GetLifecyclePolicy\", \"ecr:PutLifecyclePolicy\", \"ecr:DeleteLifecyclePolicy\", \"ecr:PutImageScanningConfiguration\", \"ecr:PutImageTagMutability\", \"ecr:GetRepositoryPolicy\"], \"Resource\": [\"arn:aws:ecr:ap-northeast-1:${data.aws_caller_identity.current.account_id}:repository/cloud-drive\", \"arn:aws:ecr:ap-northeast-1:${data.aws_caller_identity.current.account_id}:repository/cloud-drive-cache\"]}, {\"Effect\": \"Allow\", \"Action\": [\"iam:GetPolicy\", \"iam:GetPolicyVersion\", \"iam:ListPolicyVersions\", \"iam:ListEntitiesForPolicy\", \"iam:ListPolicyTags\", \"iam:CreatePolicyVersion\", \"iam:SetDefaultPolicyVersion\", \"iam:DeletePolicyVersion\", \"iam:TagPolicy\", \"iam:UntagPolicy\"], \"Resource\": \"arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/cloud-drive-concourse-ecr-push\"}, {\"Effect\": \"Allow\", \"Action\": [\"iam:GetUser\", \"iam:ListAttachedUserPolicies\", \"iam:ListUserPolicies\"], \"Resource\": \"arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/service/concourse-ci\"}, {\"Effect\": \"Allow\", \"Action\": [\"iam:AttachUserPolicy\", \"iam:DetachUserPolicy\"], \"Resource\": \"arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/service/concourse-ci\", \"Condition\": {\"ArnEquals\": {\"iam:PolicyARN\": \"arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/cloud-drive-concourse-ecr-push\"}}}]}"
+      },
+      "web_app_template_terraform": {
+        "name": "scoped-access",
+        "role": "${aws_iam_role.web_app_template_terraform.id}",
+        "policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"ecr:DescribeRepositories\", \"ecr:CreateRepository\", \"ecr:ListTagsForResource\", \"ecr:TagResource\", \"ecr:UntagResource\", \"ecr:GetLifecyclePolicy\", \"ecr:PutLifecyclePolicy\", \"ecr:DeleteLifecyclePolicy\", \"ecr:PutImageScanningConfiguration\", \"ecr:PutImageTagMutability\", \"ecr:GetRepositoryPolicy\"], \"Resource\": [\"arn:aws:ecr:ap-northeast-1:${data.aws_caller_identity.current.account_id}:repository/web-app-template-api\"]}, {\"Effect\": \"Allow\", \"Action\": [\"s3:GetBucketLocation\", \"s3:ListBucket\"], \"Resource\": \"arn:aws:s3:::web-app-template-tfstate-dev\"}, {\"Effect\": \"Allow\", \"Action\": [\"s3:GetObject\", \"s3:PutObject\", \"s3:DeleteObject\"], \"Resource\": [\"arn:aws:s3:::web-app-template-tfstate-dev/web-app-template/dev/terraform.tfstate\", \"arn:aws:s3:::web-app-template-tfstate-dev/web-app-template/dev/terraform.tfstate.tflock\"]}, {\"Effect\": \"Allow\", \"Action\": [\"dynamodb:DescribeTable\", \"dynamodb:DescribeContinuousBackups\", \"dynamodb:DescribeTimeToLive\", \"dynamodb:DescribeContributorInsights\", \"dynamodb:ListTagsOfResource\", \"dynamodb:CreateTable\", \"dynamodb:UpdateTable\", \"dynamodb:UpdateTimeToLive\", \"dynamodb:UpdateContinuousBackups\", \"dynamodb:TagResource\", \"dynamodb:UntagResource\"], \"Resource\": \"arn:aws:dynamodb:ap-northeast-1:${data.aws_caller_identity.current.account_id}:table/web-app-template-users-dev\"}, {\"Effect\": \"Allow\", \"Action\": [\"iam:GetUser\", \"iam:ListAccessKeys\", \"iam:ListUserPolicies\", \"iam:GetUserPolicy\", \"iam:ListAttachedUserPolicies\", \"iam:ListUserTags\", \"iam:UpdateUser\", \"iam:TagUser\", \"iam:UntagUser\", \"iam:PutUserPolicy\", \"iam:DeleteUserPolicy\", \"iam:CreateAccessKey\", \"iam:DeleteAccessKey\"], \"Resource\": [\"arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/service/concourse-ci\", \"arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/service/web-app-template-api\"]}]}"
+      }
+    }
+  },
+  "output": {
+    "role_arns": {
+      "value": {
+        "m3usick_ecr": "${aws_iam_role.m3usick_ecr.arn}",
+        "cloud_drive_ecr": "${aws_iam_role.cloud_drive_ecr.arn}",
+        "web_app_template_ecr": "${aws_iam_role.web_app_template_ecr.arn}",
+        "cloud_drive_terraform": "${aws_iam_role.cloud_drive_terraform.arn}",
+        "web_app_template_terraform": "${aws_iam_role.web_app_template_terraform.arn}"
+      }
+    }
+  }
+}
