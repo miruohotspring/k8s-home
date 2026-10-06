@@ -13,6 +13,8 @@ spec:
     rbac-patch.json: AgBAWy+NR9/oXvtCbSnod9JgSx/L/GQoyMIvxhRs1EJXl2FfKmBpyDHpG4H50YqOPNdnIOO364y+g5el0k08rcNU38MnLbmQ0t8EUfsebYV24McqE60I+tSKDANCmVMhCjIOqp3WISzVV1/HD3fn/4Bmwd6f/kGZugoZEXZgmUsUIUuO02tGaDMx9NxyuFF2LMHFd3xQBfJuzbEF2lOfmHSW8niMHoqyIK94tDquCksa95Y5Q6Gg4axPpDLUXSfPZE2lcRCakddZXO0yk7vYxq7bX8csaqnHTKLyLUsEwGwkEWoStOLszfBX8/+58OlKpMVG3t8/sc35wCPhuQahsZMxEWynOXhwRPPVJO7EVIeZinQckZR0flG8F36OsDH/gatDkNdtm9LrILWSfjHTyRl0r0W/KYFQATQzdscF6NUroK9EgE6gbjNe50RuO0BTaPYPIfdNOT3trl5o9oZyXI3syixhoC7cMVS8ABi4KTKgVbBh2ulmxpurCnmWir8xox/sllTxx5FTlQ1hhhuj4C3KrNSNHEwf7SXiqHjjzl1opKeXABdHJVXf5RDdgHi3m6ioVFPkN5iQd0TnScKA81K6R9EAlTGkDr+L5DRxO1Xq4QqEVJVvs7zkzB2X1Mgh0bSzB8Iab4F1QXZmZ8DX9KaPrTCSywFf+bnBAFPJSf6JyArHq3oqdSFkuE1DqA+/gmdYl8qtwn1tK+fmYlUWv82urYBiIPQpbpGJn4JcvKbX1IjMy8pBG1rCdAcKGKcT0V7sX8v1nhIqoy7JvkiUG4ofz0xiaO9JB9oAy9MqUxHT3x4ePw==
   template:
     metadata:
+      labels:
+        app.kubernetes.io/part-of: argocd
       creationTimestamp: null
       name: argocd-cloudflare-oidc
       namespace: argocd

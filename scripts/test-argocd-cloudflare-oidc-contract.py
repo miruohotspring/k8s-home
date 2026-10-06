@@ -19,6 +19,9 @@ class ArgoCDCloudflareOIDCContract(unittest.TestCase):
         cls.sealed_secret = (ARGO / "argocd-cloudflare-oidc-sealed.yaml").read_text()
         cls.runbook = (REPO / "docs" / "argocd-cloudflare-access-oidc-runbook.md").read_text()
 
+    def test_secret_is_visible_to_argocd_settings_watcher(self):
+        self.assertRegex(self.sealed_secret, r"(?m)^      labels:\n        app\.kubernetes\.io/part-of: argocd$")
+
     def test_sealed_secret_contains_only_encrypted_generated_values(self):
         self.assertIn("kind: SealedSecret", self.sealed_secret)
         self.assertIn("name: argocd-cloudflare-oidc", self.sealed_secret)

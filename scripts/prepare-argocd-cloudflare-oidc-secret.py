@@ -113,6 +113,8 @@ def main() -> int:
         "metadata:\n"
         "  name: argocd-cloudflare-oidc\n"
         "  namespace: argocd\n"
+        "  labels:\n"
+        "    app.kubernetes.io/part-of: argocd\n"
         "type: Opaque\n"
         "data:\n"
         f"{encoded}\n"
