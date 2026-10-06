@@ -1,21 +1,26 @@
 locals {
   apps = {
     argocd = {
-      name                      = "Argo CD"
-      domain                    = "argocd.miruohotspring.net"
-      redirect_uri              = "https://argocd.miruohotspring.net/auth/callback"
-      allow_pkce_without_secret = false
+      name   = "Argo CD"
+      domain = "argocd.miruohotspring.net"
+      redirect_uris = [
+        "https://argocd.miruohotspring.net/auth/callback",
+        "http://localhost:8085/auth/callback",
+      ]
+      # Argo CD CLI completes the loopback callback with PKCE and never receives
+      # the confidential client secret from the server settings endpoint.
+      allow_pkce_without_secret = true
     }
     hermes = {
       name                      = "Hermes Dashboard"
       domain                    = "hermes.miruohotspring.net"
-      redirect_uri              = "https://hermes.miruohotspring.net/auth/callback"
+      redirect_uris             = ["https://hermes.miruohotspring.net/auth/callback"]
       allow_pkce_without_secret = true
     }
     cloud-drive = {
       name                      = "Cloud Drive"
       domain                    = "api-drive.miruohotspring.net"
-      redirect_uri              = "https://api-drive.miruohotspring.net/v1/auth/callback"
+      redirect_uris             = ["https://api-drive.miruohotspring.net/v1/auth/callback"]
       allow_pkce_without_secret = false
     }
   }
@@ -74,7 +79,7 @@ resource "cloudflare_zero_trust_access_application" "app" {
     access_token_lifetime            = "10m"
     allow_pkce_without_client_secret = each.value.allow_pkce_without_secret
     grant_types                      = ["authorization_code_with_pkce", "refresh_tokens"]
-    redirect_uris                    = [each.value.redirect_uri]
+    redirect_uris                    = each.value.redirect_uris
     refresh_token_options = {
       lifetime = "719h"
     }

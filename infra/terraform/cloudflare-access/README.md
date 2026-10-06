@@ -39,6 +39,12 @@ terraform plan -out=/secure/path/cloudflare-access.tfplan
 
 Review that the plan changes only the organization settings and creates the three intended applications/policies. The `saas_clients` output is sensitive; do not run a non-redacted `terraform output` in logs. Store generated client credentials through the separately reviewed secret-management path; this change intentionally does not create or sync a SealedSecret.
 
+## Argo CD CLI prerequisite
+
+The Argo CD SaaS application registers both its HTTPS callback and the CLI loopback callback at `http://localhost:8085/auth/callback`. It permits PKCE without a client secret because the Argo CD CLI's SSO flow is a public loopback client and does not receive the server-side confidential client secret.
+
+This Terraform change does **not** switch `apps/argocd` from Authentik. Before that GitOps change, retain a non-default, non-email, non-subject RBAC group claim for administrators. Cloudflare's native One-time PIN provider does not supply the existing Authentik group claim; do not replace it with `policy.default: role:admin`.
+
 ## CI behavior
 
 Pull requests run formatting, backend-free validation, the contract test, actionlint, and zizmor without Cloudflare/AWS credentials or OIDC. On `main`, `workflow_dispatch` defaults to `plan`; choosing `apply` applies the same local saved plan only after rejecting all delete/replacement actions.
