@@ -39,11 +39,11 @@ terraform plan -out=/secure/path/cloudflare-access.tfplan
 
 Review that the plan changes only the organization settings and creates the three intended applications/policies. The `saas_clients` output is sensitive; do not run a non-redacted `terraform output` in logs. Store generated client credentials through the separately reviewed secret-management path; this change intentionally does not create or sync a SealedSecret.
 
-## Argo CD CLI prerequisite
+## Argo CD Web / CLI integration
 
-The Argo CD SaaS application registers both its HTTPS callback and the CLI loopback callback at `http://localhost:8085/auth/callback`. It permits PKCE without a client secret because the Argo CD CLI's SSO flow is a public loopback client and does not receive the server-side confidential client secret.
+Argo CD uses its existing bundled Dex as the broker. The Cloudflare upstream client is confidential authorization-code only with callback `https://argocd.miruohotspring.net/api/dex/callback`; Dex provides Argo's separate Web and CLI clients, including public CLI S256 PKCE with the localhost callback. The legacy direct callbacks remain registered for controlled rollback but are not the active login route. See `docs/argocd-cloudflare-access-oidc-runbook.md` for the native v2.13 compatibility limitations and staged cutover.
 
-This Terraform change does **not** switch `apps/argocd` from Authentik. Before that GitOps change, retain a non-default, non-email, non-subject RBAC group claim for administrators. Cloudflare's native One-time PIN provider does not supply the existing Authentik group claim; do not replace it with `policy.default: role:admin`.
+Administrator emails are encrypted in a SealedSecret and rendered into a private `policy.cloudflare.csv` overlay by a narrowly scoped PostSync Job. Keep the base `platform-admins` mapping, non-member denial, and break-glass admin; never replace these with `policy.default: role:admin`. Application callbacks, real browser login, and CLI token exchange must be verified separately from Terraform apply.
 
 ## CI behavior
 
