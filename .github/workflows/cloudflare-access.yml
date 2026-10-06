@@ -1,0 +1,132 @@
+name: Cloudflare Access Terraform
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cloudflare-access.yml"
+      - "infra/terraform/cloudflare-access/**"
+      - "infra/terraform/github-actions/access-backend.tf"
+      - "scripts/test-cloudflare-access-contract.py"
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Run a non-mutating plan or apply the same saved plan after delete/replace rejection."
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-access-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Pull request validation
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: 1.14.8
+          terraform_wrapper: false
+      - name: Terraform format
+        run: terraform fmt -check -recursive infra/terraform/cloudflare-access infra/terraform/github-actions
+      - name: Terraform backend-free validation
+        working-directory: infra/terraform/cloudflare-access
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+      - name: Terraform and IAM contract tests
+        run: python3 scripts/test-cloudflare-access-contract.py
+      - name: Lint workflow syntax
+        uses: docker://rhysd/actionlint@sha256:6f03470d0152251d7f07f7c4dc019dbe7024c72cd952f839544c7798843efa8f # v1.7.11
+        with:
+          args: -color -oneline .github/workflows/cloudflare-access.yml
+      - name: Scan workflow security
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: v1.30.1
+          persona: pedantic
+          advanced-security: false
+          annotations: true
+
+  manage:
+    name: Manual main plan or apply
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write # Required only for this manual main-branch job to assume the S3-state role.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: 1.14.8
+          terraform_wrapper: false
+      - name: Mask sensitive inputs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCESS_API_TOKEN }}
+          ALLOWED_EMAILS: ${{ secrets.CLOUDFLARE_ACCESS_ALLOWED_EMAILS_JSON }}
+        run: |
+          printf '::add-mask::%s\n' "$CLOUDFLARE_API_TOKEN"
+          printf '::add-mask::%s\n' "$ALLOWED_EMAILS"
+          python3 - <<'PY'
+          import json, os
+          for emails in json.loads(os.environ['ALLOWED_EMAILS']).values():
+              for email in emails:
+                  print('::add-mask::' + email)
+          PY
+      - name: Assume state role
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
+        with:
+          role-to-assume: ${{ vars.CLOUDFLARE_ACCESS_STATE_ROLE_ARN }}
+          aws-region: ap-northeast-1
+          role-session-name: cloudflare-access-terraform
+          mask-aws-account-id: true
+      - name: Plan and reject destructive changes
+        working-directory: infra/terraform/cloudflare-access
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCESS_API_TOKEN }}
+          TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_allowed_emails: ${{ secrets.CLOUDFLARE_ACCESS_ALLOWED_EMAILS_JSON }}
+          TF_IN_AUTOMATION: "true"
+        run: |
+          terraform init -input=false
+          # Refuse an unbootstrapped state rather than creating the existing organization.
+          terraform state show cloudflare_zero_trust_organization.this >/dev/null
+          terraform plan -input=false -out=tfplan
+          terraform show -json tfplan > tfplan.json
+          jq -e '[.resource_changes[]? | select((.change.actions | index("delete")) or (.change.actions | index("replace")))] | length == 0' tfplan.json >/dev/null
+      - name: Reject stale main revision before apply
+        if: inputs.operation == 'apply'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+      - name: Apply saved plan
+        if: inputs.operation == 'apply'
+        working-directory: infra/terraform/cloudflare-access
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCESS_API_TOKEN }}
+          TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_allowed_emails: ${{ secrets.CLOUDFLARE_ACCESS_ALLOWED_EMAILS_JSON }}
+          TF_IN_AUTOMATION: "true"
+        run: terraform apply -input=false -auto-approve tfplan
