@@ -78,6 +78,9 @@ resource "cloudflare_zero_trust_access_application" "app" {
 resource "cloudflare_zero_trust_access_policy" "allow_email_otp_totp" {
   for_each = local.apps
 
+  # Organization-level enrollment must exist before policies can require MFA.
+  depends_on = [cloudflare_zero_trust_organization.this]
+
   account_id = var.cloudflare_account_id
   name       = "Allow ${each.value.name} email OTP with TOTP"
   decision   = "allow"

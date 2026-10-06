@@ -14,6 +14,8 @@ terraform {
     region       = "ap-northeast-1"
     encrypt      = true
     use_lockfile = true
+
+    workspace_key_prefix = "platform/cloudflare-access/workspaces"
   }
 }
 

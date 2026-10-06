@@ -52,6 +52,7 @@ resource "aws_iam_role_policy" "cloudflare_access_state" {
             "s3:prefix" = [
               "platform/cloudflare-access/terraform.tfstate",
               "platform/cloudflare-access/terraform.tfstate.tflock",
+              "platform/cloudflare-access/workspaces/",
             ]
           }
         }

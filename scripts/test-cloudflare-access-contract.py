@@ -19,6 +19,13 @@ class CloudflareAccessContract(unittest.TestCase):
         cls.workflow = WORKFLOW.read_text()
         cls.bootstrap = BOOTSTRAP.read_text()
 
+    def test_first_apply_and_shared_organization_are_guarded(self):
+        self.assertIn("depends_on = [cloudflare_zero_trust_organization.this]", self.terraform)
+        self.assertIn("terraform state show cloudflare_zero_trust_organization.this", self.workflow)
+        self.assertIn("git/ref/heads/main", self.workflow)
+        self.assertIn('workspace_key_prefix', self.terraform)
+        self.assertIn('platform/cloudflare-access/workspaces/', self.bootstrap)
+
     def test_dedicated_encrypted_state_and_pinned_provider(self):
         self.assertIn('source  = "cloudflare/cloudflare"', self.terraform)
         self.assertIn('version = "5.27.0"', self.terraform)

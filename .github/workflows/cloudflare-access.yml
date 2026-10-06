@@ -89,6 +89,12 @@ jobs:
         run: |
           printf '::add-mask::%s\n' "$CLOUDFLARE_API_TOKEN"
           printf '::add-mask::%s\n' "$ALLOWED_EMAILS"
+          python3 - <<'PY'
+          import json, os
+          for emails in json.loads(os.environ['ALLOWED_EMAILS']).values():
+              for email in emails:
+                  print('::add-mask::' + email)
+          PY
       - name: Assume state role
         uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
         with:
@@ -105,9 +111,16 @@ jobs:
           TF_IN_AUTOMATION: "true"
         run: |
           terraform init -input=false
+          # Refuse an unbootstrapped state rather than creating the existing organization.
+          terraform state show cloudflare_zero_trust_organization.this >/dev/null
           terraform plan -input=false -out=tfplan
           terraform show -json tfplan > tfplan.json
           jq -e '[.resource_changes[]? | select((.change.actions | index("delete")) or (.change.actions | index("replace")))] | length == 0' tfplan.json >/dev/null
+      - name: Reject stale main revision before apply
+        if: inputs.operation == 'apply'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
       - name: Apply saved plan
         if: inputs.operation == 'apply'
         working-directory: infra/terraform/cloudflare-access
