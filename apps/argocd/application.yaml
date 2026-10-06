@@ -12,7 +12,16 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
+  ignoreDifferences:
+    - group: ""
+      kind: ConfigMap
+      name: argocd-rbac-cm
+      namespace: argocd
+      jsonPointers:
+        - /data/policy.cloudflare.csv
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true
