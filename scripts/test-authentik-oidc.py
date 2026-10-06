@@ -88,7 +88,19 @@ def main() -> None:
     ):
         assert expected in blueprint, f"blueprint missing {expected}"
     assert blueprint.count("access_token_validity: days=365") == 2
-    assert blueprint.count("refresh_token_validity: days=365") == 3
+    assert blueprint.count("refresh_token_validity: days=365") == 4
+    hermes_blueprint = yaml.safe_load(blueprint)["data"]["hermes.yaml"]
+    for expected in (
+        "name: hermes-users",
+        "client_type: public",
+        "client_id: hermes-dashboard",
+        "https://hermes.miruohotspring.net/auth/callback",
+        "policy_engine_mode: all",
+        "group: !KeyOf hermes-users",
+        "scope-offline_access",
+    ):
+        assert expected in hermes_blueprint, f"Hermes blueprint missing {expected}"
+    assert "client_secret:" not in hermes_blueprint
     assert "create_users_group:" not in blueprint
 
     invitation_stage = blueprint.index("authentik_stages_invitation.invitationstage")
