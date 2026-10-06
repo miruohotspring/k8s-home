@@ -65,7 +65,7 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn('allow_pkce_without_secret = true', self.terraform)
         self.assertIn('allow_pkce_without_secret = false', self.terraform)
         self.assertIn('allow_pkce_without_client_secret = each.value.allow_pkce_without_secret', self.terraform)
-        self.assertIn('grant_types                      = ["authorization_code_with_pkce", "refresh_tokens"]', self.terraform)
+        self.assertIn('grant_types                      = each.key == "argocd" ? ["authorization_code", "authorization_code_with_pkce", "refresh_tokens"] : ["authorization_code_with_pkce", "refresh_tokens"]', self.terraform)
         self.assertIn('mfa_disabled           = false', self.terraform)
         self.assertNotIn('"groups"', self.terraform)
 

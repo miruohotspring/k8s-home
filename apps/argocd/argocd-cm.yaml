@@ -17,4 +17,6 @@ data:
     clientID: $argocd-cloudflare-oidc:clientID
     clientSecret: $argocd-cloudflare-oidc:clientSecret
     requestedScopes: ["openid", "profile", "email"]
-    enablePKCEAuthentication: true
+    # Argo 2.13 browser PKCE omits state; Cloudflare correctly requires it.
+    # Use server-side confidential code flow for Web; CLI still uses PKCE.
+    enablePKCEAuthentication: false
