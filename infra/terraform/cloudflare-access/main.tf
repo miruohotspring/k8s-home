@@ -5,12 +5,13 @@ locals {
       domain = "argocd.miruohotspring.net"
       redirect_uris = [
         "https://argocd.miruohotspring.net/auth/callback",
+        "https://argocd.miruohotspring.net/api/dex/callback",
         "https://argocd.miruohotspring.net/pkce/verify",
         "http://localhost:8085/auth/callback",
       ]
-      # Argo CD CLI completes the loopback callback with PKCE and never receives
-      # the confidential client secret from the server settings endpoint.
-      allow_pkce_without_secret = true
+      # The bundled Dex authenticates upstream as a confidential client and
+      # provides Argo's separate Web/CLI clients, including CLI PKCE.
+      allow_pkce_without_secret = false
     }
     hermes = {
       name                      = "Hermes Dashboard"
@@ -79,7 +80,7 @@ resource "cloudflare_zero_trust_access_application" "app" {
     auth_type                        = "oidc"
     access_token_lifetime            = "10m"
     allow_pkce_without_client_secret = each.value.allow_pkce_without_secret
-    grant_types                      = each.key == "argocd" ? ["authorization_code", "authorization_code_with_pkce", "refresh_tokens"] : ["authorization_code_with_pkce", "refresh_tokens"]
+    grant_types                      = each.key == "argocd" ? ["authorization_code", "refresh_tokens"] : ["authorization_code_with_pkce", "refresh_tokens"]
     redirect_uris                    = each.value.redirect_uris
     refresh_token_options = {
       lifetime = "719h"

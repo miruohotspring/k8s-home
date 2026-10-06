@@ -28,13 +28,15 @@ class ArgoCDCloudflareOIDCContract(unittest.TestCase):
         self.assertIn("name: Cloudflare Access", self.cm)
         for secret_key in ("issuer", "clientID", "clientSecret"):
             self.assertIn(f"$argocd-cloudflare-oidc:{secret_key}", self.cm)
-        self.assertIn('requestedScopes: ["openid", "profile", "email"]', self.cm)
+        self.assertIn('scopes: ["openid", "profile", "email"]', self.cm)
         self.assertNotIn("requestedIDTokenClaims", self.cm)
         self.assertNotIn('"groups"', self.cm)
         self.assertNotRegex(self.cm, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 
-    def test_browser_uses_stateful_confidential_flow_for_argocd_213(self):
-        self.assertIn("enablePKCEAuthentication: false", self.cm)
+    def test_bundled_dex_brokers_confidential_upstream_and_web_cli_clients(self):
+        self.assertIn("dex.config:", self.cm)
+        self.assertNotIn("oidc.config:", self.cm)
+        self.assertIn("redirectURI: https://argocd.miruohotspring.net/api/dex/callback", self.cm)
         self.assertIn("clientSecret: $argocd-cloudflare-oidc:clientSecret", self.cm)
 
     def test_sealed_secret_contains_only_encrypted_generated_values(self):
