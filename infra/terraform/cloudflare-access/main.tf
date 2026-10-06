@@ -5,6 +5,7 @@ locals {
       domain = "argocd.miruohotspring.net"
       redirect_uris = [
         "https://argocd.miruohotspring.net/auth/callback",
+        "https://argocd.miruohotspring.net/pkce/verify",
         "http://localhost:8085/auth/callback",
       ]
       # Argo CD CLI completes the loopback callback with PKCE and never receives
