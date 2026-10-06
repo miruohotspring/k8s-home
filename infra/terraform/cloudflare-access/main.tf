@@ -30,6 +30,11 @@ resource "cloudflare_zero_trust_organization" "this" {
   session_duration            = "720h"
   mfa_required_for_all_apps   = false
 
+  # Preserve existing organization-wide behavior; do not alter unrelated apps.
+  deny_unmatched_requests                     = false
+  deny_unmatched_requests_exempted_zone_names = []
+
+
   mfa_config = {
     allowed_authenticators        = ["totp"]
     amr_matching_session_duration = "0m"
@@ -38,6 +43,8 @@ resource "cloudflare_zero_trust_organization" "this" {
 
   lifecycle {
     prevent_destroy = true
+    # This migration does not own service-token expiry settings.
+    ignore_changes = [service_token_inactivity]
   }
 }
 
