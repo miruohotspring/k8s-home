@@ -16,6 +16,14 @@ data:
       idTokens: 720h
     oauth2:
       skipApprovalScreen: true
+    # Hermes uses the same Dex browser session as Argo CD. Dex remains a
+    # public PKCE client boundary; Cloudflare Access is still the upstream IdP.
+    staticClients:
+      - id: hermes-dashboard
+        name: Hermes Dashboard
+        public: true
+        redirectURIs:
+          - https://hermes.miruohotspring.net/auth/callback
     connectors:
       - type: oidc
         id: cloudflare
