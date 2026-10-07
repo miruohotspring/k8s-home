@@ -39,9 +39,9 @@ terraform plan -out=/secure/path/cloudflare-access.tfplan
 
 Review that the plan changes only the organization settings and creates the three intended applications/policies. The `saas_clients` output is sensitive; do not run a non-redacted `terraform output` in logs. Store generated client credentials through the separately reviewed secret-management path; this change intentionally does not create or sync a SealedSecret.
 
-## Argo CD Web / CLI integration
+## Argo CD Web / CLI and Hermes integration
 
-Argo CD uses its existing bundled Dex as the broker. The Cloudflare upstream client is confidential authorization-code only with callback `https://argocd.miruohotspring.net/api/dex/callback`; Dex provides Argo's separate Web and CLI clients, including public CLI S256 PKCE with the localhost callback. The legacy direct callbacks remain registered for controlled rollback but are not the active login route. See `docs/argocd-cloudflare-access-oidc-runbook.md` for the native v2.13 compatibility limitations and staged cutover.
+Argo CD uses its existing bundled Dex as the broker. The Cloudflare upstream client is confidential authorization-code only with callback `https://argocd.miruohotspring.net/api/dex/callback`; Dex provides Argo's separate Web and CLI clients, including public CLI S256 PKCE with the localhost callback. Hermes uses the same Dex issuer through its own public `hermes-dashboard` PKCE client and callback, which lets its browser login reuse the Dex session established by Argo CD. Cloudflare Access remains the upstream identity and MFA policy. The legacy direct Cloudflare callbacks remain registered for controlled rollback but are not the active Argo or Hermes login route. See `docs/argocd-cloudflare-access-oidc-runbook.md` for the native v2.13 compatibility limitations and staged cutover.
 
 Administrator emails are encrypted in a SealedSecret and rendered into a private `policy.cloudflare.csv` overlay by a narrowly scoped PostSync Job. Keep the base `platform-admins` mapping, non-member denial, and break-glass admin; never replace these with `policy.default: role:admin`. Application callbacks, real browser login, and CLI token exchange must be verified separately from Terraform apply.
 
