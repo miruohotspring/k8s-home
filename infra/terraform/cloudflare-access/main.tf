@@ -67,7 +67,7 @@ resource "cloudflare_zero_trust_access_application" "app" {
   type       = "saas"
 
   allowed_idps              = [var.email_otp_identity_provider_id]
-  auto_redirect_to_identity = each.key == "hermes"
+  auto_redirect_to_identity = each.key == "hermes" ? true : null
   session_duration          = "720h"
   policies = [
     {
