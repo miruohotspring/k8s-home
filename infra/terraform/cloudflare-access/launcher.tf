@@ -1,13 +1,12 @@
 # The enrollment portal needs its own Access application; SaaS tiles alone do
 # not enable it. Limit portal login to the existing application allowlists.
 resource "cloudflare_zero_trust_access_application" "launcher" {
-  account_id          = var.cloudflare_account_id
-  name                = "App Launcher"
-  type                = "app_launcher"
-  domain              = cloudflare_zero_trust_organization.this.auth_domain
-  allowed_idps        = [var.email_otp_identity_provider_id]
-  session_duration    = "720h"
-  landing_page_design = {}
+  account_id       = var.cloudflare_account_id
+  name             = "App Launcher"
+  type             = "app_launcher"
+  domain           = cloudflare_zero_trust_organization.this.auth_domain
+  allowed_idps     = [var.email_otp_identity_provider_id]
+  session_duration = "720h"
 
   policies = [{
     id         = cloudflare_zero_trust_access_policy.launcher_enrollment.id
@@ -16,6 +15,9 @@ resource "cloudflare_zero_trust_access_application" "launcher" {
 
   lifecycle {
     prevent_destroy = true
+    # The API materializes a default launcher title even when no custom design
+    # is configured. Ignore that provider normalization, not the auth settings.
+    ignore_changes = [landing_page_design]
   }
 }
 
@@ -38,5 +40,11 @@ resource "cloudflare_zero_trust_access_policy" "launcher_enrollment" {
   # attached ONLY to the launcher; all SaaS applications keep mandatory TOTP.
   mfa_config = {
     mfa_disabled = true
+  }
+
+  lifecycle {
+    # The API returns an empty string for this disabled-MFA policy while the
+    # provider normalizes an omitted value to null.
+    ignore_changes = [mfa_config.session_duration]
   }
 }
