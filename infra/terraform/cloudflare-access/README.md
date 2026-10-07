@@ -45,6 +45,8 @@ Argo CD uses its existing bundled Dex as the broker. The Cloudflare upstream cli
 
 Administrator emails are encrypted in a SealedSecret and rendered into a private `policy.cloudflare.csv` overlay by a narrowly scoped PostSync Job. Keep the base `platform-admins` mapping, non-member denial, and break-glass admin; never replace these with `policy.default: role:admin`. Application callbacks, real browser login, and CLI token exchange must be verified separately from Terraform apply.
 
+Hermes is the only managed SaaS application with `auto_redirect_to_identity` enabled. It has exactly one allowed IdP (email OTP), so Access can evaluate an existing global session without first rendering the email/IdP selection page. Keep this application-scoped: enabling the organization-wide redirect would also change unrelated existing applications and identity providers.
+
 ## CI behavior
 
 Pull requests run formatting, backend-free validation, the contract test, actionlint, and zizmor without Cloudflare/AWS credentials or OIDC. On `main`, `workflow_dispatch` defaults to `plan`; choosing `apply` applies the same local saved plan only after rejecting all delete/replacement actions.

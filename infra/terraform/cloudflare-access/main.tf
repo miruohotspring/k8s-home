@@ -66,8 +66,9 @@ resource "cloudflare_zero_trust_access_application" "app" {
   name       = each.value.name
   type       = "saas"
 
-  allowed_idps     = [var.email_otp_identity_provider_id]
-  session_duration = "720h"
+  allowed_idps              = [var.email_otp_identity_provider_id]
+  auto_redirect_to_identity = each.key == "hermes"
+  session_duration          = "720h"
   policies = [
     {
       id         = cloudflare_zero_trust_access_policy.allow_email_otp_totp[each.key].id
