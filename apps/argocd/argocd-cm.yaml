@@ -26,3 +26,6 @@ data:
           clientSecret: $argocd-cloudflare-oidc:clientSecret
           redirectURI: https://argocd.miruohotspring.net/api/dex/callback
           scopes: ["openid", "profile", "email"]
+          # OTP identities omit name; use email only as the display name.
+          # Leave userIDKey unset so identity remains the signed OIDC sub.
+          userNameKey: email

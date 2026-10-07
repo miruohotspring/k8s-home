@@ -11,6 +11,8 @@ This migration keeps the built-in `admin` path enabled while Cloudflare Access O
 
 ## Phase B — OIDC settings cutover
 
+The native OTP identity was observed to omit the `name` claim, causing Dex to reject a real callback with `missing "name" claim`. Set the connector's `userNameKey: email` for display-name mapping only; do not set `userIDKey` or weaken signature, issuer, audience, or email-verification checks. This mapping does not prove an end-to-end login; verify the next real callback before marking the cutover complete.
+
 Argo CD v2.13 browser PKCE omits OAuth state (`expectNoState`), while Cloudflare requires state. A shared direct Web/CLI client also rejected the server-side Web request with `code_challenge is required for this client`. Use the already-installed Dex v2.41.1 as the broker instead: its upstream Cloudflare client is confidential authorization-code only, while Dex provides the standard separate Argo Web and CLI clients (including CLI PKCE). The upstream callback is `/api/dex/callback`; Hermes and Cloud Drive remain PKCE-only. Dex ID tokens and Argo sessions are capped at 720h. No new identity store or deployment is introduced. Restart `argocd-dex-server` and `argocd-server` after changing provider wiring if their cached settings remain stale; a refreshed settings API alone is not login verification.
 
 1. Apply the separate Phase B commit after Phase A verification. It points Argo CD at the sealed Cloudflare issuer/client references, requests only `openid`, `profile`, and `email`, and sets `users.session.duration: "720h"`.
