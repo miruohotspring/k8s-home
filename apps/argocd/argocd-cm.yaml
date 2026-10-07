@@ -29,3 +29,10 @@ data:
           # OTP identities omit name; use email only as the display name.
           # Leave userIDKey unset so identity remains the signed OIDC sub.
           userNameKey: email
+          # Access authenticates the approved email upstream but omits this
+          # optional claim. Trust only this pinned Access connector; the app
+          # allows only email OTP, the exact email allowlist and independent TOTP.
+          # TLS/JWT/issuer/audience/sub verification remain enabled.
+          insecureSkipEmailVerified: true
+          # Do not force a fresh consent interaction on every offline login.
+          promptType: ""
