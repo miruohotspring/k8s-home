@@ -28,7 +28,7 @@ class ArgoCDCloudflareOIDCContract(unittest.TestCase):
         self.assertIn("name: Cloudflare Access", self.cm)
         for secret_key in ("issuer", "clientID", "clientSecret"):
             self.assertIn(f"$argocd-cloudflare-oidc:{secret_key}", self.cm)
-        self.assertIn('scopes: ["openid", "profile", "email"]', self.cm)
+        self.assertIn('scopes: ["openid", "profile", "email", "offline_access"]', self.cm)
         self.assertNotIn("requestedIDTokenClaims", self.cm)
         self.assertNotIn('"groups"', self.cm)
         self.assertNotRegex(self.cm, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")

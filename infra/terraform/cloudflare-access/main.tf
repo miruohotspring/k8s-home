@@ -12,22 +12,18 @@ locals {
       # The bundled Dex authenticates upstream as a confidential client and
       # provides Argo's separate Web/CLI clients, including CLI PKCE.
       allow_pkce_without_secret = false
-      grant_types               = ["authorization_code", "refresh_token"]
     }
     hermes = {
       name                      = "Hermes Dashboard"
       domain                    = "hermes.miruohotspring.net"
       redirect_uris             = ["https://hermes.miruohotspring.net/auth/callback"]
       allow_pkce_without_secret = true
-      grant_types               = ["authorization_code_with_pkce", "refresh_token"]
     }
     cloud-drive = {
       name                      = "Cloud Drive"
       domain                    = "api-drive.miruohotspring.net"
       redirect_uris             = ["https://api-drive.miruohotspring.net/v1/auth/callback"]
       allow_pkce_without_secret = false
-      # Preserve the unused migration client until its separate cutover.
-      grant_types = ["authorization_code_with_pkce", "refresh_tokens"]
     }
   }
 }
@@ -84,7 +80,7 @@ resource "cloudflare_zero_trust_access_application" "app" {
     auth_type                        = "oidc"
     access_token_lifetime            = "10m"
     allow_pkce_without_client_secret = each.value.allow_pkce_without_secret
-    grant_types                      = each.value.grant_types
+    grant_types                      = each.key == "argocd" ? ["authorization_code", "refresh_tokens"] : ["authorization_code_with_pkce", "refresh_tokens"]
     redirect_uris                    = each.value.redirect_uris
     refresh_token_options = {
       lifetime = "719h"
