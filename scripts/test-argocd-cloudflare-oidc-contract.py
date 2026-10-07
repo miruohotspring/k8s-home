@@ -39,6 +39,12 @@ class ArgoCDCloudflareOIDCContract(unittest.TestCase):
         self.assertIn("redirectURI: https://argocd.miruohotspring.net/api/dex/callback", self.cm)
         self.assertIn("clientSecret: $argocd-cloudflare-oidc:clientSecret", self.cm)
 
+    def test_otp_display_name_mapping_preserves_subject_and_verification(self):
+        self.assertIn("userNameKey: email", self.cm)
+        self.assertNotIn("userIDKey:", self.cm)
+        self.assertNotIn("insecureSkipEmailVerified: true", self.cm)
+        self.assertNotIn("insecureSkipVerify: true", self.cm)
+
     def test_sealed_secret_contains_only_encrypted_generated_values(self):
         self.assertIn("kind: SealedSecret", self.sealed_secret)
         self.assertIn("name: argocd-cloudflare-oidc", self.sealed_secret)
