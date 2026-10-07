@@ -1,12 +1,13 @@
 # The enrollment portal needs its own Access application; SaaS tiles alone do
 # not enable it. Limit portal login to the existing application allowlists.
 resource "cloudflare_zero_trust_access_application" "launcher" {
-  account_id       = var.cloudflare_account_id
-  name             = "Access App Launcher"
-  type             = "app_launcher"
-  domain           = cloudflare_zero_trust_organization.this.auth_domain
-  allowed_idps     = [var.email_otp_identity_provider_id]
-  session_duration = "720h"
+  account_id          = var.cloudflare_account_id
+  name                = "App Launcher"
+  type                = "app_launcher"
+  domain              = cloudflare_zero_trust_organization.this.auth_domain
+  allowed_idps        = [var.email_otp_identity_provider_id]
+  session_duration    = "720h"
+  landing_page_design = {}
 
   policies = [{
     id         = cloudflare_zero_trust_access_policy.launcher_enrollment.id
