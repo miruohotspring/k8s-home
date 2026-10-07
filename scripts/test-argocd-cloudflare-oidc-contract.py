@@ -39,7 +39,7 @@ class ArgoCDCloudflareOIDCContract(unittest.TestCase):
         self.assertIn("redirectURI: https://argocd.miruohotspring.net/api/dex/callback", self.cm)
         self.assertIn("clientSecret: $argocd-cloudflare-oidc:clientSecret", self.cm)
 
-    def test_hermes_uses_dex_public_pkce_client_for_shared_browser_sso(self):
+    def test_hermes_uses_dex_public_pkce_client_for_shared_access_session(self):
         self.assertIn("staticClients:", self.cm)
         self.assertIn("id: hermes-dashboard", self.cm)
         self.assertIn("name: Hermes Dashboard", self.cm)
