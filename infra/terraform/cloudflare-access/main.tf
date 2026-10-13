@@ -60,6 +60,21 @@ resource "cloudflare_zero_trust_organization" "this" {
   }
 }
 
+resource "cloudflare_zero_trust_access_identity_provider" "google" {
+  account_id = var.cloudflare_account_id
+  name       = "Google"
+  type       = "google"
+
+  config = {
+    client_id     = var.google_oauth_client_id
+    client_secret = var.google_oauth_client_secret
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "cloudflare_zero_trust_access_application" "app" {
   for_each = local.apps
 
@@ -67,7 +82,7 @@ resource "cloudflare_zero_trust_access_application" "app" {
   name       = each.value.name
   type       = "saas"
 
-  allowed_idps              = [var.email_otp_identity_provider_id]
+  allowed_idps              = [cloudflare_zero_trust_access_identity_provider.google.id]
   auto_redirect_to_identity = true
   session_duration          = "720h"
   policies = [
@@ -102,7 +117,7 @@ resource "cloudflare_zero_trust_access_policy" "allow_email_otp_totp" {
   depends_on = [cloudflare_zero_trust_organization.this]
 
   account_id = var.cloudflare_account_id
-  name       = "Allow ${each.value.name} email OTP with TOTP"
+  name       = "Allow ${each.value.name} via Google with TOTP"
   decision   = "allow"
 
   include = [

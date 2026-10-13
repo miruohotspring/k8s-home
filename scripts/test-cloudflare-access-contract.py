@@ -40,19 +40,32 @@ class CloudflareAccessContract(unittest.TestCase):
                 "cloudflare_zero_trust_organization",
                 "cloudflare_zero_trust_access_application",
                 "cloudflare_zero_trust_access_policy",
+                "cloudflare_zero_trust_access_identity_provider",
             },
         )
         self.assertRegex(
             self.terraform,
-            r"allowed_idps\s*=\s*\[var\.email_otp_identity_provider_id\]",
+            r"allowed_idps\s*=\s*\[cloudflare_zero_trust_access_identity_provider\.google\.id\]",
         )
         self.assertIn(
             'auto_redirect_to_identity = true',
             self.terraform,
         )
-        self.assertNotIn("cloudflare_zero_trust_access_identity_provider", self.terraform)
         self.assertNotIn("cloudflare_zero_trust_access_group", self.terraform)
         self.assertIn("prevent_destroy = true", self.terraform)
+
+    def test_google_is_the_only_primary_identity_provider(self):
+        self.assertIn('resource "cloudflare_zero_trust_access_identity_provider" "google"', self.terraform)
+        self.assertIn('name       = "Google"', self.terraform)
+        self.assertIn('type       = "google"', self.terraform)
+        self.assertIn('client_id     = var.google_oauth_client_id', self.terraform)
+        self.assertIn('client_secret = var.google_oauth_client_secret', self.terraform)
+        self.assertNotIn("email_otp_identity_provider_id", self.terraform)
+        for variable in ("google_oauth_client_id", "google_oauth_client_secret"):
+            self.assertRegex(
+                self.terraform,
+                rf'variable "{variable}" \{{[\s\S]*?sensitive\s+=\s+true',
+            )
 
     def test_access_contract_is_totp_email_otp_and_720_hours(self):
         for callback in (
@@ -115,7 +128,11 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn("persona: pedantic", self.workflow)
         self.assertIn("CLOUDFLARE_ACCESS_API_TOKEN", self.workflow)
         self.assertIn("CLOUDFLARE_ACCESS_ALLOWED_EMAILS_JSON", self.workflow)
+        self.assertIn("CLOUDFLARE_GOOGLE_CLIENT_ID", self.workflow)
+        self.assertIn("CLOUDFLARE_GOOGLE_CLIENT_SECRET", self.workflow)
         self.assertIn("TF_VAR_allowed_emails", self.workflow)
+        self.assertIn("TF_VAR_google_oauth_client_id", self.workflow)
+        self.assertIn("TF_VAR_google_oauth_client_secret", self.workflow)
         self.assertIn("CLOUDFLARE_ACCESS_STATE_ROLE_ARN", self.workflow)
         self.assertIn("terraform show -json tfplan", self.workflow)
         self.assertIn("terraform apply -input=false -auto-approve tfplan", self.workflow)
