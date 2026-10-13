@@ -47,7 +47,7 @@ class CloudflareAccessContract(unittest.TestCase):
             r"allowed_idps\s*=\s*\[var\.email_otp_identity_provider_id\]",
         )
         self.assertIn(
-            'auto_redirect_to_identity = contains(["argocd", "hermes"], each.key) ? true : null',
+            'auto_redirect_to_identity = true',
             self.terraform,
         )
         self.assertNotIn("cloudflare_zero_trust_access_identity_provider", self.terraform)
@@ -62,6 +62,7 @@ class CloudflareAccessContract(unittest.TestCase):
             "http://localhost:8085/auth/callback",
             "https://hermes.miruohotspring.net/auth/callback",
             "https://api-drive.miruohotspring.net/v1/auth/callback",
+            "http://localhost:8086/callback",
         ):
             self.assertIn(callback, self.terraform)
         self.assertIn('allowed_authenticators = ["totp"]', self.terraform)

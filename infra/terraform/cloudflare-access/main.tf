@@ -20,9 +20,13 @@ locals {
       allow_pkce_without_secret = true
     }
     cloud-drive = {
-      name                      = "Cloud Drive"
-      domain                    = "api-drive.miruohotspring.net"
-      redirect_uris             = ["https://api-drive.miruohotspring.net/v1/auth/callback"]
+      name   = "Cloud Drive"
+      domain = "api-drive.miruohotspring.net"
+      redirect_uris = [
+        "https://api-drive.miruohotspring.net/v1/auth/callback",
+        # Temporary verified-subject capture callback. Remove immediately after preflight.
+        "http://localhost:8086/callback",
+      ]
       allow_pkce_without_secret = false
     }
   }
@@ -67,7 +71,7 @@ resource "cloudflare_zero_trust_access_application" "app" {
   type       = "saas"
 
   allowed_idps              = [var.email_otp_identity_provider_id]
-  auto_redirect_to_identity = contains(["argocd", "hermes"], each.key) ? true : null
+  auto_redirect_to_identity = true
   session_duration          = "720h"
   policies = [
     {
