@@ -1,12 +1,13 @@
 # The enrollment portal needs its own Access application; SaaS tiles alone do
 # not enable it. Limit portal login to the existing application allowlists.
 resource "cloudflare_zero_trust_access_application" "launcher" {
-  account_id       = var.cloudflare_account_id
-  name             = "App Launcher"
-  type             = "app_launcher"
-  domain           = cloudflare_zero_trust_organization.this.auth_domain
-  allowed_idps     = [var.email_otp_identity_provider_id]
-  session_duration = "720h"
+  account_id                = var.cloudflare_account_id
+  name                      = "App Launcher"
+  type                      = "app_launcher"
+  domain                    = cloudflare_zero_trust_organization.this.auth_domain
+  allowed_idps              = [var.email_otp_identity_provider_id]
+  auto_redirect_to_identity = true
+  session_duration          = "720h"
 
   policies = [{
     id         = cloudflare_zero_trust_access_policy.launcher_enrollment.id
@@ -23,7 +24,7 @@ resource "cloudflare_zero_trust_access_application" "launcher" {
 
 resource "cloudflare_zero_trust_access_policy" "launcher_enrollment" {
   account_id = var.cloudflare_account_id
-  name       = "Allow approved users to enroll MFA"
+  name       = var.launcher_mfa_enrollment_mode ? "Allow approved users to enroll MFA" : "Allow approved users with TOTP"
   decision   = "allow"
 
   include = [
@@ -36,15 +37,13 @@ resource "cloudflare_zero_trust_access_policy" "launcher_enrollment" {
 
   session_duration = "720h"
 
-  # Users must reach enrollment before they have a TOTP device. This policy is
-  # attached ONLY to the launcher; all SaaS applications keep mandatory TOTP.
+  # The steady state makes the launcher the Access session entrypoint, so a
+  # launcher session proves the same TOTP requirement as every SaaS app. A
+  # short, explicit manual apply can temporarily open MFA enrollment; all SaaS
+  # applications remain TOTP-protected during that window.
   mfa_config = {
-    mfa_disabled = true
-  }
-
-  lifecycle {
-    # The API returns an empty string for this disabled-MFA policy while the
-    # provider normalizes an omitted value to null.
-    ignore_changes = [mfa_config.session_duration]
+    allowed_authenticators = ["totp"]
+    mfa_disabled           = var.launcher_mfa_enrollment_mode
+    session_duration       = "720h"
   }
 }
