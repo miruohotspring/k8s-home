@@ -14,9 +14,3 @@ variable "allowed_emails" {
   type        = map(set(string))
   sensitive   = true
 }
-
-variable "launcher_mfa_enrollment_mode" {
-  description = "Temporarily allow approved users into App Launcher before they have enrolled TOTP. Keep false during normal operation."
-  type        = bool
-  default     = false
-}
