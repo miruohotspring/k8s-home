@@ -67,11 +67,8 @@ resource "cloudflare_zero_trust_access_application" "app" {
   name       = each.value.name
   type       = "saas"
 
-  allowed_idps = [var.email_otp_identity_provider_id]
-  # Instant authentication redirects directly to the upstream IdP. Keep it
-  # disabled for Hermes while proving whether the Access login page reuses the
-  # valid organization and trusted-device cookies for silent authorization.
-  auto_redirect_to_identity = each.key != "hermes"
+  allowed_idps              = [var.email_otp_identity_provider_id]
+  auto_redirect_to_identity = true
   session_duration          = "720h"
   policies = [
     {
