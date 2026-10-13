@@ -98,6 +98,12 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn('launcher_mfa_enrollment_mode:', self.workflow)
         self.assertIn('TF_VAR_launcher_mfa_enrollment_mode:', self.workflow)
 
+    def test_hermes_uses_global_session_before_idp_redirect(self):
+        self.assertIn(
+            'auto_redirect_to_identity = each.key != "hermes"',
+            self.terraform,
+        )
+
     def test_allowlists_are_a_single_sensitive_map_with_static_app_keys(self):
         self.assertRegex(
             self.terraform,
