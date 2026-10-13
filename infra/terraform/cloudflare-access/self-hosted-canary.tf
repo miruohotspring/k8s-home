@@ -65,3 +65,56 @@ resource "cloudflare_zero_trust_access_policy" "self_hosted_canary" {
     session_duration       = "720h"
   }
 }
+
+# Cloud Drive can validate this path-scoped assertion and establish its
+# existing local session without changing the production OIDC login yet.
+resource "cloudflare_zero_trust_access_application" "cloud_drive_bootstrap" {
+  account_id                = var.cloudflare_account_id
+  name                      = "Cloud Drive Access JWT bootstrap"
+  type                      = "self_hosted"
+  domain                    = "api-drive.miruohotspring.net/v1/auth/cloudflare-access"
+  allowed_idps              = [var.email_otp_identity_provider_id]
+  auto_redirect_to_identity = true
+  session_duration          = "720h"
+
+  policies = [{
+    id         = cloudflare_zero_trust_access_policy.cloud_drive_bootstrap.id
+    precedence = 1
+  }]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "cloudflare_zero_trust_access_policy" "cloud_drive_bootstrap" {
+  depends_on = [cloudflare_zero_trust_organization.this]
+
+  account_id = var.cloudflare_account_id
+  name       = "Allow Cloud Drive Access JWT bootstrap with TOTP"
+  decision   = "allow"
+
+  include = [
+    for email in var.allowed_emails["cloud-drive"] : {
+      email = { email = email }
+    }
+  ]
+
+  session_duration = "720h"
+
+  mfa_config = {
+    allowed_authenticators = ["totp"]
+    mfa_disabled           = false
+    session_duration       = "720h"
+  }
+}
+
+output "self_hosted_audiences" {
+  description = "Audience tags used by origins to validate path-scoped Access application JWTs."
+  value = {
+    canaries = {
+      for key, app in cloudflare_zero_trust_access_application.self_hosted_canary : key => app.aud
+    }
+    cloud_drive_bootstrap = cloudflare_zero_trust_access_application.cloud_drive_bootstrap.aud
+  }
+}
