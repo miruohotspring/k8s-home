@@ -62,9 +62,9 @@ class CloudflareAccessContract(unittest.TestCase):
             "http://localhost:8085/auth/callback",
             "https://hermes.miruohotspring.net/auth/callback",
             "https://api-drive.miruohotspring.net/v1/auth/callback",
-            "http://localhost:8086/callback",
         ):
             self.assertIn(callback, self.terraform)
+        self.assertNotIn("http://localhost:8086/callback", self.terraform)
         self.assertIn('allowed_authenticators = ["totp"]', self.terraform)
         self.assertIn('amr_matching_session_duration = "0m"', self.terraform)
         self.assertIn('session_duration              = "720h"', self.terraform)
