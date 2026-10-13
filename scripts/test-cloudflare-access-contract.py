@@ -118,6 +118,20 @@ class CloudflareAccessContract(unittest.TestCase):
             r'resource "cloudflare_zero_trust_access_policy" "self_hosted_canary" \{[\s\S]*?mfa_disabled\s*=\s*false',
         )
 
+    def test_cloud_drive_access_bootstrap_is_path_scoped_and_exports_audience(self):
+        self.assertIn(
+            "api-drive.miruohotspring.net/v1/auth/cloudflare-access",
+            self.terraform,
+        )
+        self.assertRegex(
+            self.terraform,
+            r'resource "cloudflare_zero_trust_access_policy" "cloud_drive_bootstrap" \{[\s\S]*?var\.allowed_emails\["cloud-drive"\]',
+        )
+        self.assertRegex(
+            self.terraform,
+            r'output "self_hosted_audiences" \{[\s\S]*?cloud_drive_bootstrap\s*=\s*cloudflare_zero_trust_access_application\.cloud_drive_bootstrap\.aud',
+        )
+
     def test_allowlists_are_a_single_sensitive_map_with_static_app_keys(self):
         self.assertRegex(
             self.terraform,
