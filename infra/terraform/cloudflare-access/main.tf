@@ -36,6 +36,7 @@ resource "cloudflare_zero_trust_organization" "this" {
   is_ui_read_only             = false
   session_duration            = "720h"
   mfa_required_for_all_apps   = false
+  auto_redirect_to_identity   = false
 
   # Preserve existing organization-wide behavior; do not alter unrelated apps.
   deny_unmatched_requests                     = false

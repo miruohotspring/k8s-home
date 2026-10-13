@@ -78,6 +78,26 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn('mfa_disabled           = false', self.terraform)
         self.assertNotIn('"groups"', self.terraform)
 
+    def test_launcher_is_the_mfa_session_entrypoint_by_default(self):
+        self.assertRegex(
+            self.terraform,
+            r'resource "cloudflare_zero_trust_organization" "this" \{[\s\S]*?auto_redirect_to_identity\s*=\s*false',
+        )
+        self.assertRegex(
+            self.terraform,
+            r'resource "cloudflare_zero_trust_access_application" "launcher" \{[\s\S]*?auto_redirect_to_identity\s*=\s*true',
+        )
+        self.assertRegex(
+            self.terraform,
+            r'variable "launcher_mfa_enrollment_mode" \{[\s\S]*?default\s*=\s*false',
+        )
+        self.assertRegex(
+            self.terraform,
+            r'resource "cloudflare_zero_trust_access_policy" "launcher_enrollment" \{[\s\S]*?mfa_disabled\s*=\s*var\.launcher_mfa_enrollment_mode',
+        )
+        self.assertIn('launcher_mfa_enrollment_mode:', self.workflow)
+        self.assertIn('TF_VAR_launcher_mfa_enrollment_mode:', self.workflow)
+
     def test_allowlists_are_a_single_sensitive_map_with_static_app_keys(self):
         self.assertRegex(
             self.terraform,
