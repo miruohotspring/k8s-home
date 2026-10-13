@@ -17,11 +17,6 @@ on:
         options:
           - plan
           - apply
-      allow_experiment_cleanup:
-        description: "Allow only the exact canary/bootstrap/launcher deletions in this cleanup."
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -107,13 +102,12 @@ jobs:
           aws-region: ap-northeast-1
           role-session-name: cloudflare-access-terraform
           mask-aws-account-id: true
-      - name: Plan and reject unintended destructive changes
+      - name: Plan and reject destructive changes
         working-directory: infra/terraform/cloudflare-access
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCESS_API_TOKEN }}
           TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           TF_VAR_allowed_emails: ${{ secrets.CLOUDFLARE_ACCESS_ALLOWED_EMAILS_JSON }}
-          ALLOW_EXPERIMENT_CLEANUP: ${{ inputs.allow_experiment_cleanup }}
           TF_IN_AUTOMATION: "true"
         run: |
           terraform init -input=false
@@ -121,37 +115,7 @@ jobs:
           terraform state show cloudflare_zero_trust_organization.this >/dev/null
           terraform plan -input=false -out=tfplan
           terraform show -json tfplan > tfplan.json
-          python3 - <<'PY'
-          import json, os
-
-          with open("tfplan.json") as f:
-              plan = json.load(f)
-          destructive = {
-              change["address"]: change["change"]["actions"]
-              for change in plan.get("resource_changes", [])
-              if "delete" in change["change"]["actions"]
-          }
-          if any(actions != ["delete"] for actions in destructive.values()):
-              raise SystemExit("replacement actions are never allowed")
-          if os.environ["ALLOW_EXPERIMENT_CLEANUP"] != "true":
-              if destructive:
-                  raise SystemExit("delete actions require explicit experiment cleanup mode")
-              raise SystemExit(0)
-          expected = {
-              'cloudflare_zero_trust_access_application.self_hosted_canary["argocd"]',
-              'cloudflare_zero_trust_access_application.self_hosted_canary["hermes"]',
-              'cloudflare_zero_trust_access_application.self_hosted_canary["cloud-drive"]',
-              'cloudflare_zero_trust_access_policy.self_hosted_canary["argocd"]',
-              'cloudflare_zero_trust_access_policy.self_hosted_canary["hermes"]',
-              'cloudflare_zero_trust_access_policy.self_hosted_canary["cloud-drive"]',
-              "cloudflare_zero_trust_access_application.cloud_drive_bootstrap",
-              "cloudflare_zero_trust_access_policy.cloud_drive_bootstrap",
-              "cloudflare_zero_trust_access_application.launcher",
-              "cloudflare_zero_trust_access_policy.launcher_enrollment",
-          }
-          if set(destructive) != expected:
-              raise SystemExit("cleanup plan does not contain the exact approved deletion set")
-          PY
+          jq -e '[.resource_changes[]? | select((.change.actions | index("delete")) or (.change.actions | index("replace")))] | length == 0' tfplan.json >/dev/null
       - name: Reject stale main revision before apply
         if: inputs.operation == 'apply'
         env:
