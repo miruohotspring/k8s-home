@@ -98,6 +98,26 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn('launcher_mfa_enrollment_mode:', self.workflow)
         self.assertIn('TF_VAR_launcher_mfa_enrollment_mode:', self.workflow)
 
+    def test_self_hosted_canaries_prove_global_session_reuse_without_new_dns(self):
+        for domain in (
+            "argocd.miruohotspring.net/__access_canary",
+            "hermes.miruohotspring.net/__access_canary",
+            "drive.miruohotspring.net/__access_canary",
+        ):
+            self.assertIn(domain, self.terraform)
+        self.assertRegex(
+            self.terraform,
+            r'resource "cloudflare_zero_trust_access_application" "self_hosted_canary" \{[\s\S]*?type\s*=\s*"self_hosted"',
+        )
+        self.assertRegex(
+            self.terraform,
+            r'resource "cloudflare_zero_trust_access_policy" "self_hosted_canary" \{[\s\S]*?var\.allowed_emails\["argocd"\]',
+        )
+        self.assertRegex(
+            self.terraform,
+            r'resource "cloudflare_zero_trust_access_policy" "self_hosted_canary" \{[\s\S]*?mfa_disabled\s*=\s*false',
+        )
+
     def test_allowlists_are_a_single_sensitive_map_with_static_app_keys(self):
         self.assertRegex(
             self.terraform,
