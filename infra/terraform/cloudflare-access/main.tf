@@ -20,13 +20,9 @@ locals {
       allow_pkce_without_secret = true
     }
     cloud-drive = {
-      name   = "Cloud Drive"
-      domain = "api-drive.miruohotspring.net"
-      redirect_uris = [
-        "https://api-drive.miruohotspring.net/v1/auth/callback",
-        # Temporary verified-subject capture callback. Remove immediately after preflight.
-        "http://localhost:8086/callback",
-      ]
+      name                      = "Cloud Drive"
+      domain                    = "api-drive.miruohotspring.net"
+      redirect_uris             = ["https://api-drive.miruohotspring.net/v1/auth/callback"]
       allow_pkce_without_secret = false
     }
   }
