@@ -78,59 +78,16 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn('mfa_disabled           = false', self.terraform)
         self.assertNotIn('"groups"', self.terraform)
 
-    def test_launcher_is_the_mfa_session_entrypoint_by_default(self):
-        self.assertRegex(
-            self.terraform,
-            r'resource "cloudflare_zero_trust_organization" "this" \{[\s\S]*?auto_redirect_to_identity\s*=\s*false',
-        )
-        self.assertRegex(
-            self.terraform,
-            r'resource "cloudflare_zero_trust_access_application" "launcher" \{[\s\S]*?auto_redirect_to_identity\s*=\s*true',
-        )
-        self.assertRegex(
-            self.terraform,
-            r'variable "launcher_mfa_enrollment_mode" \{[\s\S]*?default\s*=\s*false',
-        )
-        self.assertRegex(
-            self.terraform,
-            r'resource "cloudflare_zero_trust_access_policy" "launcher_enrollment" \{[\s\S]*?mfa_disabled\s*=\s*var\.launcher_mfa_enrollment_mode',
-        )
-        self.assertIn('launcher_mfa_enrollment_mode:', self.workflow)
-        self.assertIn('TF_VAR_launcher_mfa_enrollment_mode:', self.workflow)
-
-    def test_self_hosted_canaries_prove_global_session_reuse_without_new_dns(self):
-        for domain in (
-            "argocd.miruohotspring.net/__access_canary",
-            "hermes.miruohotspring.net/__access_canary",
-            "drive.miruohotspring.net/__access_canary",
-        ):
-            self.assertIn(domain, self.terraform)
-        self.assertRegex(
-            self.terraform,
-            r'resource "cloudflare_zero_trust_access_application" "self_hosted_canary" \{[\s\S]*?type\s*=\s*"self_hosted"',
-        )
-        self.assertRegex(
-            self.terraform,
-            r'resource "cloudflare_zero_trust_access_policy" "self_hosted_canary" \{[\s\S]*?var\.allowed_emails\["argocd"\]',
-        )
-        self.assertRegex(
-            self.terraform,
-            r'resource "cloudflare_zero_trust_access_policy" "self_hosted_canary" \{[\s\S]*?mfa_disabled\s*=\s*false',
-        )
-
-    def test_cloud_drive_access_bootstrap_is_path_scoped_and_exports_audience(self):
-        self.assertIn(
+    def test_experimental_access_paths_are_absent(self):
+        for forbidden in (
+            "__access_canary",
             "api-drive.miruohotspring.net/v1/auth/cloudflare-access",
-            self.terraform,
-        )
-        self.assertRegex(
-            self.terraform,
-            r'resource "cloudflare_zero_trust_access_policy" "cloud_drive_bootstrap" \{[\s\S]*?var\.allowed_emails\["cloud-drive"\]',
-        )
-        self.assertRegex(
-            self.terraform,
-            r'output "self_hosted_audiences" \{[\s\S]*?cloud_drive_bootstrap\s*=\s*cloudflare_zero_trust_access_application\.cloud_drive_bootstrap\.aud',
-        )
+            'type                      = "self_hosted"',
+            'resource "cloudflare_zero_trust_access_application" "launcher"',
+            'type                      = "app_launcher"',
+            'output "self_hosted_audiences"',
+        ):
+            self.assertNotIn(forbidden, self.terraform)
 
     def test_allowlists_are_a_single_sensitive_map_with_static_app_keys(self):
         self.assertRegex(
