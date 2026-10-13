@@ -46,7 +46,10 @@ class CloudflareAccessContract(unittest.TestCase):
             self.terraform,
             r"allowed_idps\s*=\s*\[var\.email_otp_identity_provider_id\]",
         )
-        self.assertIn('auto_redirect_to_identity = each.key == "hermes" ? true : null', self.terraform)
+        self.assertIn(
+            'auto_redirect_to_identity = contains(["argocd", "hermes"], each.key) ? true : null',
+            self.terraform,
+        )
         self.assertNotIn("cloudflare_zero_trust_access_identity_provider", self.terraform)
         self.assertNotIn("cloudflare_zero_trust_access_group", self.terraform)
         self.assertIn("prevent_destroy = true", self.terraform)
