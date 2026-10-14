@@ -132,6 +132,7 @@ resource "cloudflare_zero_trust_access_application" "launcher" {
 
   allowed_idps              = [cloudflare_zero_trust_access_identity_provider.google.id]
   auto_redirect_to_identity = true
+  landing_page_design       = {}
   session_duration          = "720h"
   policies = [
     {
