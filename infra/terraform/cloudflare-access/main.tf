@@ -75,14 +75,6 @@ resource "cloudflare_zero_trust_access_identity_provider" "google" {
   }
 }
 
-removed {
-  from = cloudflare_zero_trust_access_group.app_users
-
-  lifecycle {
-    destroy = false
-  }
-}
-
 data "cloudflare_zero_trust_access_group" "app_users" {
   for_each = local.apps
 

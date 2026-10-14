@@ -108,8 +108,8 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn('name = "app-${each.key}-users"', self.terraform)
         self.assertIn('group = {', self.terraform)
         self.assertIn('id = data.cloudflare_zero_trust_access_group.app_users[each.key].id', self.terraform)
-        self.assertIn('from = cloudflare_zero_trust_access_group.app_users', self.terraform)
-        self.assertIn('destroy = false', self.terraform)
+        self.assertNotIn('from = cloudflare_zero_trust_access_group.app_users', self.terraform)
+        self.assertNotIn('destroy = false', self.terraform)
         self.assertIn("for_each = local.apps", self.terraform)
         self.assertNotRegex(self.terraform, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 
