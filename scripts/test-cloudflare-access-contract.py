@@ -105,7 +105,8 @@ class CloudflareAccessContract(unittest.TestCase):
             self.terraform,
         )
         self.assertIn('type       = "app_launcher"', self.terraform)
-        self.assertRegex(self.terraform, r"landing_page_design\s*=\s*\{\}")
+        self.assertRegex(self.terraform, r"landing_page_design\s*=\s*\{")
+        self.assertIn('title = "Welcome!"', self.terraform)
         self.assertRegex(
             self.terraform,
             r"id\s*=\s*cloudflare_zero_trust_access_policy\.launcher\.id",
