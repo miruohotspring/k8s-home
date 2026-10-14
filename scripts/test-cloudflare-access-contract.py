@@ -41,6 +41,7 @@ class CloudflareAccessContract(unittest.TestCase):
                 "cloudflare_zero_trust_access_application",
                 "cloudflare_zero_trust_access_policy",
                 "cloudflare_zero_trust_access_identity_provider",
+                "cloudflare_zero_trust_access_group",
             },
         )
         self.assertRegex(
@@ -51,7 +52,6 @@ class CloudflareAccessContract(unittest.TestCase):
             'auto_redirect_to_identity = true',
             self.terraform,
         )
-        self.assertNotIn("cloudflare_zero_trust_access_group", self.terraform)
         self.assertIn("prevent_destroy = true", self.terraform)
 
     def test_google_is_the_only_primary_identity_provider(self):
@@ -102,11 +102,20 @@ class CloudflareAccessContract(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, self.terraform)
 
-    def test_allowlists_are_a_single_sensitive_map_with_static_app_keys(self):
+    def test_gui_access_groups_are_bootstrapped_from_the_private_allowlist(self):
         self.assertRegex(
             self.terraform,
             r'variable "allowed_emails" \{[\s\S]*?type\s+=\s+map\(set\(string\)\)[\s\S]*?sensitive\s+=\s+true',
         )
+        self.assertIn('resource "cloudflare_zero_trust_access_group" "app_users"', self.terraform)
+        self.assertIn('name       = "app-${each.key}-users"', self.terraform)
+        self.assertIn('for email in var.allowed_emails[each.key]', self.terraform)
+        self.assertIn('group = {', self.terraform)
+        self.assertIn('id = cloudflare_zero_trust_access_group.app_users[each.key].id', self.terraform)
+        policy_block = self.terraform.split(
+            'resource "cloudflare_zero_trust_access_policy"', 1
+        )[1]
+        self.assertNotIn('for email in var.allowed_emails', policy_block)
         self.assertIn("for_each = local.apps", self.terraform)
         self.assertNotRegex(self.terraform, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 

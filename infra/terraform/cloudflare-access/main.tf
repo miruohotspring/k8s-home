@@ -75,6 +75,25 @@ resource "cloudflare_zero_trust_access_identity_provider" "google" {
   }
 }
 
+resource "cloudflare_zero_trust_access_group" "app_users" {
+  for_each = local.apps
+
+  account_id = var.cloudflare_account_id
+  name       = "app-${each.key}-users"
+
+  include = [
+    for email in var.allowed_emails[each.key] : {
+      email = {
+        email = email
+      }
+    }
+  ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "cloudflare_zero_trust_access_application" "app" {
   for_each = local.apps
 
@@ -120,13 +139,11 @@ resource "cloudflare_zero_trust_access_policy" "allow_email_otp_totp" {
   name       = "Allow ${each.value.name} via Google with TOTP"
   decision   = "allow"
 
-  include = [
-    for email in var.allowed_emails[each.key] : {
-      email = {
-        email = email
-      }
+  include = [{
+    group = {
+      id = cloudflare_zero_trust_access_group.app_users[each.key].id
     }
-  ]
+  }]
 
   session_duration = "720h"
 
