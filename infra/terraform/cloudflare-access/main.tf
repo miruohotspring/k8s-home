@@ -132,10 +132,7 @@ resource "cloudflare_zero_trust_access_application" "launcher" {
 
   allowed_idps              = [cloudflare_zero_trust_access_identity_provider.google.id]
   auto_redirect_to_identity = true
-  landing_page_design = {
-    title = "Welcome!"
-  }
-  session_duration = "720h"
+  session_duration          = "720h"
   policies = [
     {
       id         = cloudflare_zero_trust_access_policy.launcher.id
@@ -145,6 +142,9 @@ resource "cloudflare_zero_trust_access_application" "launcher" {
 
   lifecycle {
     prevent_destroy = true
+    # Cloudflare returns an API-generated empty/default design that provider
+    # v5.27 cannot round-trip without a perpetual empty/title diff.
+    ignore_changes = [landing_page_design]
   }
 }
 
