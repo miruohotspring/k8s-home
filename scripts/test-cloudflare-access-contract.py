@@ -90,16 +90,54 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn('mfa_disabled           = false', self.terraform)
         self.assertNotIn('"groups"', self.terraform)
 
-    def test_experimental_access_paths_are_absent(self):
+    def test_nonstandard_access_paths_are_absent(self):
         for forbidden in (
             "__access_canary",
             "api-drive.miruohotspring.net/v1/auth/cloudflare-access",
             'type                      = "self_hosted"',
-            'resource "cloudflare_zero_trust_access_application" "launcher"',
-            'type                      = "app_launcher"',
             'output "self_hosted_audiences"',
         ):
             self.assertNotIn(forbidden, self.terraform)
+
+    def test_standard_app_launcher_uses_google_totp_and_gui_groups(self):
+        self.assertIn(
+            'resource "cloudflare_zero_trust_access_application" "launcher"',
+            self.terraform,
+        )
+        self.assertIn('type       = "app_launcher"', self.terraform)
+        self.assertRegex(
+            self.terraform,
+            r"id\s*=\s*cloudflare_zero_trust_access_policy\.launcher\.id",
+        )
+        self.assertIn('resource "cloudflare_zero_trust_access_policy" "launcher"', self.terraform)
+        self.assertIn('name       = "Allow App Launcher via Google with TOTP"', self.terraform)
+        self.assertIn(
+            'for key in sort(keys(local.apps))',
+            self.terraform,
+        )
+        self.assertIn(
+            'id = data.cloudflare_zero_trust_access_group.app_users[key].id',
+            self.terraform,
+        )
+        self.assertGreaterEqual(
+            self.terraform.count(
+                'allowed_idps              = [cloudflare_zero_trust_access_identity_provider.google.id]'
+            ),
+            2,
+        )
+        self.assertGreaterEqual(
+            self.terraform.count('auto_redirect_to_identity = true'),
+            2,
+        )
+        self.assertGreaterEqual(
+            len(re.findall(r"launcher_visible\s*=\s*true", self.terraform)),
+            2,
+        )
+        self.assertRegex(self.terraform, r"launcher_visible\s*=\s*false")
+        self.assertIn(
+            'app_launcher_visible      = each.value.launcher_visible',
+            self.terraform,
+        )
 
     def test_gui_owns_membership_and_terraform_reads_the_groups(self):
         self.assertNotIn('variable "allowed_emails"', self.terraform)
