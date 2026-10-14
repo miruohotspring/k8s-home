@@ -1,40 +1,48 @@
 # Argo CD Cloudflare Access OIDC staged cutover
 
-This migration keeps the built-in `admin` path enabled while Cloudflare Access OIDC and the private RBAC overlay are validated. Do not disable it during either phase.
+Cloudflare Access is the standard OIDC provider for Argo CD. Google is the only allowed upstream IdP for this SaaS application. The built-in Argo CD `admin` path remains enabled as an independent break-glass route until a separate recovery procedure is proven.
 
-## Phase A — private RBAC material and overlay
+## Membership and authorization ownership
 
-1. From `infra/terraform/cloudflare-access`, use the checked-in generator with a configured Terraform backend. It captures `terraform output -json saas_clients` and the current Argo CD allowlist policy from Terraform state in process memory, rejects invalid CSV-sensitive values, and emits a Kubernetes Secret only to the `kubeseal` pipe.
-2. Seal the generated Secret for the in-cluster controller. Commit only `apps/argocd/argocd-cloudflare-oidc-sealed.yaml`; it contains encrypted `issuer`, `clientID`, `clientSecret`, and `rbac-patch.json` values.
-3. Apply Phase A through the normal GitOps review and sync path. The PostSync Job mounts only `rbac-patch.json` and merges `data.policy.cloudflare.csv` into `argocd-rbac-cm`. Its ServiceAccount can only `get` and `patch` that ConfigMap.
-4. Verify before Phase B: the SealedSecret has produced `argocd-cloudflare-oidc`, the PostSync Job completed, `argocd-rbac-cm` contains the generated key, and a Cloudflare-accessenticated administrator resolves through the `platform-admins` mapping. Keep the current Authentik login and `admin.enabled: "true"` available for this validation.
+Application entry is managed in the Cloudflare Zero Trust Web GUI through Rule group `app-argocd-users`. Terraform reads that group by name and attaches it to the Argo CD Access policy, but deliberately does not manage its members.
 
-## Phase B — OIDC settings cutover
+A user admitted by Cloudflare receives Argo CD's safe default `role:readonly`. Administrator access is separate and explicit: private email-to-`platform-admins` mappings are sealed into `rbac-patch.json`, and the Git-managed base policy maps `platform-admins` to `role:admin`. Never set `policy.default: role:admin`.
 
-Real OTP callbacks omitted both `name` and `email_verified`. Use `userNameKey: email` for display only and keep identity on the signed `sub`. For this pinned Access connector only, `insecureSkipEmailVerified: true` trusts the email ownership check already performed by the upstream **email-OTP-only** login, exact email allowlist, and independent TOTP policy. It does not disable JWT signature/issuer/audience/TLS validation. Reassess this exception before adding any different upstream IdP; do not apply it to arbitrary providers. Set `promptType: ""` so offline authorization does not explicitly demand consent again.
+## Phase A — private administrator RBAC overlay
 
-Keep email OTP as the primary Access login method; do not introduce the Cloudflare-account IdP. Cloudflare One-time PIN cannot provide an initial email-address-plus-TOTP flow without the emailed PIN, so a full session establishment is email address, emailed PIN, then independent TOTP. Global and MFA sessions stay at 720h. The App Launcher is the normal Access session entrypoint and requires the same TOTP factor as the SaaS applications; opening it successfully therefore proves the browser has completed the intended Access policy rather than only an MFA-exempt launcher session. Argo CD and Hermes are limited to the single OTP IdP and enable application-level instant authentication so a valid Access global and MFA session is evaluated without first rendering the email/IdP selection page. Argo needs this for `argocd login --sso`, because an existing Argo Web session does not cover the CLI's fresh upstream authorization. Keep organization-wide redirect explicitly disabled because unrelated existing applications and IdPs are outside this root. Both Hermes and the Dex upstream connector must request `offline_access` so short-lived credentials can be renewed by the 719h refresh token. Cloudflare's **configuration** grant is `refresh_tokens` (plural), while OAuth's **token request** uses `grant_type=refresh_token` (singular); do not confuse them. Provider v5.27 rejects the singular configuration value at plan time. The provider's application scope list accepts only its standard profile scopes; `offline_access` is enabled by the refresh option and belongs in the client's authorization request. The live endpoint accepted an `offline_access` request even though discovery omitted it. Verify an actual refresh before claiming persistent login. Cloud Drive and existing SSH/IdPs remain unchanged. TOTP enrollment is a second factor, not a replacement for primary login after the entire global session expires.
+1. Prepare an owner-only JSON file containing the explicit Argo CD administrator emails. It must be a non-empty JSON array and use mode `0600`. Do not commit it.
+2. Run `scripts/prepare-argocd-cloudflare-oidc-secret.py` with `--terraform-dir`, `--team-name`, and `--admin-emails-file`. Pipe its Secret output directly to `kubeseal`; never write the plaintext Secret or Terraform output to disk or logs.
+3. Commit only `apps/argocd/argocd-cloudflare-oidc-sealed.yaml`. It contains encrypted `issuer`, `clientID`, `clientSecret`, and `rbac-patch.json` values.
+4. The PostSync Job mounts only `rbac-patch.json` and merges `data.policy.cloudflare.csv` into `argocd-rbac-cm`. Its ServiceAccount can only `get` and `patch` that ConfigMap.
+5. Verify that the SealedSecret produced `argocd-cloudflare-oidc`, the PostSync Job completed, GUI-admitted ordinary users resolve to `role:readonly`, and explicit administrators resolve through `platform-admins` to `role:admin`.
 
-### Temporary TOTP enrollment window
+Cloudflare GUI membership and Argo administrator RBAC are intentionally not the same list. Adding someone to `app-argocd-users` grants read-only use; administrator promotion requires a reviewed SealedSecret update.
 
-Normal Terraform plans use `launcher_mfa_enrollment_mode=false`. When an approved user has no TOTP device yet, run the manual Cloudflare Access workflow with `launcher_mfa_enrollment_mode=true`, let that user open the Launcher and enroll TOTP, then immediately run an apply with the value returned to `false` and finish with a no-change plan. The temporary mode relaxes only the Launcher policy; Argo CD, Hermes, and Cloud Drive remain TOTP-required. Do not leave enrollment mode enabled as steady state.
+## Phase B — Google-backed Cloudflare OIDC
 
-Argo CD v2.13 browser PKCE omits OAuth state (`expectNoState`), while Cloudflare requires state. A shared direct Web/CLI client also rejected the server-side Web request with `code_challenge is required for this client`. Use the already-installed Dex v2.41.1 as the broker instead: its upstream Cloudflare client is confidential authorization-code only, while Dex provides the standard separate Argo Web and CLI clients (including CLI PKCE). The upstream callback is `/api/dex/callback`. Hermes remains a direct Cloudflare public-PKCE client. A trial that routed Hermes through Argo's Dex did not eliminate the Cloudflare email prompt: Argo's own application cookie let Argo reopen without proving that the Access global session was reusable, and Dex v2.41.1 does not provide the newer cross-client browser-session feature. Cloud Drive also remains direct until its staged migration. Dex ID tokens and Argo sessions are capped at 720h. No new identity store or deployment is introduced. Restart `argocd-dex-server` and `argocd-server` after changing provider wiring if their cached settings remain stale; a refreshed settings API alone is not login verification.
+Argo CD v2.13 browser PKCE omits OAuth state, while Cloudflare requires it. A shared direct Web/CLI client also caused incompatible PKCE requirements. The bundled Dex broker therefore remains the standards-compatible boundary: Dex uses the confidential Cloudflare authorization-code client at `/api/dex/callback`, while Argo keeps separate Web and CLI clients, including the CLI loopback PKCE callback on `http://localhost:8085/auth/callback`.
 
-1. Apply the separate Phase B commit after Phase A verification. It points Argo CD at the sealed Cloudflare issuer/client references, requests only `openid`, `profile`, and `email`, and sets `users.session.duration: "720h"`.
-2. Test in a fresh browser session: email OTP, enrolled TOTP, callback to Argo CD, administrator authorization, denied-user behavior, and CLI login using the loopback PKCE callback on `http://localhost:8085/auth/callback`.
-3. Argo CD v2.13.3 combines `policy.csv` with every `policy.<name>.csv` key. The parent `argocd-ingress` Application ignores only `/data/policy.cloudflare.csv` and sets `RespectIgnoreDifferences=true`, so its generated key is preserved while the base `g, platform-admins, role:admin` policy remains Git-managed.
+The Dex connector requests `openid`, `profile`, `email`, and `offline_access`. Cloudflare's SaaS application enables `authorization_code` and `refresh_tokens`; its 719-hour refresh lifetime supports the 720-hour Argo session policy. Keep JWT signature, issuer, audience, TLS, expiry, and subject validation enabled.
+
+Cloudflare Access sends users directly to Google. Google performs primary authentication, including account-side Passkey when available. Cloudflare independently requires the enrolled TOTP factor according to the application policy. The exact per-application membership gate remains `app-argocd-users` in the Cloudflare GUI.
+
+The connector uses `userNameKey: email` only for display and keeps identity on signed subject data. The pinned Cloudflare connector may use `insecureSkipEmailVerified: true` because Access has already restricted the Google identity through the exact Rule group and independent MFA policy; do not generalize that exception to arbitrary issuers. `insecureSkipVerify` must remain disabled.
+
+## Verification
+
+After any identity, group, RBAC, or OIDC change:
+
+1. Run the Cloudflare Terraform plan and require zero delete or replacement actions.
+2. Verify an existing administrator can log in through Google and retains administrator operations.
+3. Verify a GUI-admitted non-admin can log in and receives read-only access.
+4. Verify a user outside `app-argocd-users` is denied by Cloudflare Access.
+5. Run `argocd login argocd.miruohotspring.net --sso --grpc-web` and confirm the loopback callback succeeds.
+6. Run a second Terraform plan and require `No changes.`
 
 ## Rollback and recovery
 
-- If Phase A fails, retain the built-in administrator and the existing Authentik OIDC settings; fix or remove the PostSync overlay resources, then resync. The base RBAC policy remains unchanged.
-- If Phase B login or authorization fails, revert only the OIDC settings commit. The Phase A sealed Secret and RBAC overlay can remain in place without changing the active issuer.
-- If GitOps reconciliation removes the generated key unexpectedly, confirm the `argocd-ingress` Application still has the exact ignore rule and `RespectIgnoreDifferences=true`, then rerun the PostSync Job through an ordinary sync.
-- Do not remove the existing Authentik client secret or disable `admin.enabled` until an independent, approved recovery procedure has been tested.
-
-## Source checks
-
-- Argo CD v2.13.3 `util/rbac/rbac.go` (`PolicyCSV`) for composed `policy.<name>.csv` behavior.
-- Argo CD v2.13.3 `util/settings/settings.go` for `users.session.duration` and OIDC secret-reference substitution.
-- Cloudflare Access OIDC documentation for the team issuer format and discovery endpoint.
-- `registry.k8s.io` manifest response for the digest-pinned kubectl image used by the Job.
+- Keep `admin.enabled: "true"` until independent recovery is tested.
+- If Google or Cloudflare login fails, use the built-in administrator and revert only the affected OIDC or policy change.
+- If GUI membership is wrong, restore the Rule group in Cloudflare Zero Trust; Terraform does not overwrite its members.
+- If the generated RBAC key disappears, confirm the `argocd-ingress` Application still ignores `/data/policy.cloudflare.csv` with `RespectIgnoreDifferences=true`, then rerun the PostSync Job through an ordinary sync.
+- Do not remove the previous Authentik client or identities until the remaining Cloud Drive migration and full recovery validation are complete.

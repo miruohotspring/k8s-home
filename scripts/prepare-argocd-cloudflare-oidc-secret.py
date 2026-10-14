@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Emit an Argo CD Cloudflare Access Secret for immediate sealing.
 
-The process captures Terraform's sensitive client output and state in memory. Its
-standard output is Kubernetes Secret YAML intended only for a kubeseal pipe.
+The process captures Terraform's sensitive client output in memory. Argo CD
+administrator identities come from a separate owner-only JSON file; ordinary
+application membership remains Web-managed in Cloudflare Access. Standard
+output is Kubernetes Secret YAML intended only for a kubeseal pipe.
 """
 import argparse
 import base64
@@ -35,37 +37,21 @@ def terraform_json(terraform_dir: pathlib.Path, *args: str) -> Any:
         raise RuntimeError("Terraform returned invalid JSON") from exc
 
 
-def resources(module: dict) -> list[dict]:
-    found = list(module.get("resources", []))
-    for child in module.get("child_modules", []):
-        found.extend(resources(child))
-    return found
+def load_admin_emails(path: pathlib.Path) -> list[str]:
+    try:
+        if path.stat().st_mode & 0o077:
+            raise RuntimeError("The Argo CD admin email file must use owner-only permissions")
+        values = json.loads(path.read_text())
+    except OSError as exc:
+        raise RuntimeError("The Argo CD admin email file could not be read") from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("The Argo CD admin email file is not valid JSON") from exc
 
-
-def extract_argocd_emails(state: dict) -> list[str]:
-    target = 'cloudflare_zero_trust_access_policy.allow_email_otp_totp["argocd"]'
-    match = next(
-        (item for item in resources(state["values"]["root_module"]) if item.get("address") == target),
-        None,
-    )
-    if match is None:
-        raise RuntimeError("The Argo CD allowlist policy is absent from Terraform state")
-
-    emails: set[str] = set()
-    for selector in match["values"].get("include", []):
-        for name, value in selector.items():
-            if value is None:
-                continue
-            if name != "email" or not isinstance(value, dict) or set(value) != {"email"}:
-                raise RuntimeError("The Argo CD allowlist contains an unsupported identity selector")
-            email = value["email"]
-            if not isinstance(email, str) or not EMAIL.fullmatch(email):
-                raise RuntimeError("The Argo CD allowlist contains an invalid email value")
-            emails.add(email)
-
-    if not emails:
-        raise RuntimeError("The Argo CD allowlist has no email identities")
-    return sorted(emails, key=str.casefold)
+    if not isinstance(values, list) or not values:
+        raise RuntimeError("The Argo CD admin email file must contain a non-empty JSON array")
+    if any(not isinstance(value, str) or not EMAIL.fullmatch(value) for value in values):
+        raise RuntimeError("The Argo CD admin email file contains an invalid email value")
+    return sorted(set(values), key=str.casefold)
 
 
 def encode(value: str) -> str:
@@ -76,6 +62,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--terraform-dir", type=pathlib.Path, required=True)
     parser.add_argument("--team-name", required=True)
+    parser.add_argument("--admin-emails-file", type=pathlib.Path, required=True)
     args = parser.parse_args()
 
     if not TEAM.fullmatch(args.team_name):
@@ -94,8 +81,7 @@ def main() -> int:
     if not isinstance(client_secret, str) or not client_secret or "\r" in client_secret or "\n" in client_secret:
         raise RuntimeError("The Argo CD client secret is invalid")
 
-    state = terraform_json(args.terraform_dir, "show", "-json")
-    emails = extract_argocd_emails(state)
+    emails = load_admin_emails(args.admin_emails_file)
     policy = "".join(f"g, {email}, platform-admins\n" for email in emails)
     patch = json.dumps({"data": {"policy.cloudflare.csv": policy}}, separators=(",", ":"))
     issuer = f"https://{args.team_name}.cloudflareaccess.com/cdn-cgi/access/sso/oidc/{quote(client_id, safe='') }"
