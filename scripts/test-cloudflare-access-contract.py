@@ -41,7 +41,6 @@ class CloudflareAccessContract(unittest.TestCase):
                 "cloudflare_zero_trust_access_application",
                 "cloudflare_zero_trust_access_policy",
                 "cloudflare_zero_trust_access_identity_provider",
-                "cloudflare_zero_trust_access_group",
             },
         )
         self.assertRegex(
@@ -102,20 +101,15 @@ class CloudflareAccessContract(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, self.terraform)
 
-    def test_gui_access_groups_are_bootstrapped_from_the_private_allowlist(self):
-        self.assertRegex(
-            self.terraform,
-            r'variable "allowed_emails" \{[\s\S]*?type\s+=\s+map\(set\(string\)\)[\s\S]*?sensitive\s+=\s+true',
-        )
-        self.assertIn('resource "cloudflare_zero_trust_access_group" "app_users"', self.terraform)
-        self.assertIn('name       = "app-${each.key}-users"', self.terraform)
-        self.assertIn('for email in var.allowed_emails[each.key]', self.terraform)
+    def test_gui_owns_membership_and_terraform_reads_the_groups(self):
+        self.assertNotIn('variable "allowed_emails"', self.terraform)
+        self.assertNotIn('resource "cloudflare_zero_trust_access_group"', self.terraform)
+        self.assertIn('data "cloudflare_zero_trust_access_group" "app_users"', self.terraform)
+        self.assertIn('name = "app-${each.key}-users"', self.terraform)
         self.assertIn('group = {', self.terraform)
-        self.assertIn('id = cloudflare_zero_trust_access_group.app_users[each.key].id', self.terraform)
-        policy_block = self.terraform.split(
-            'resource "cloudflare_zero_trust_access_policy"', 1
-        )[1]
-        self.assertNotIn('for email in var.allowed_emails', policy_block)
+        self.assertIn('id = data.cloudflare_zero_trust_access_group.app_users[each.key].id', self.terraform)
+        self.assertIn('from = cloudflare_zero_trust_access_group.app_users', self.terraform)
+        self.assertIn('destroy = false', self.terraform)
         self.assertIn("for_each = local.apps", self.terraform)
         self.assertNotRegex(self.terraform, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 
@@ -136,10 +130,10 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertIn("scripts/test-cloudflare-access-contract.py", self.workflow)
         self.assertIn("persona: pedantic", self.workflow)
         self.assertIn("CLOUDFLARE_ACCESS_API_TOKEN", self.workflow)
-        self.assertIn("CLOUDFLARE_ACCESS_ALLOWED_EMAILS_JSON", self.workflow)
+        self.assertNotIn("CLOUDFLARE_ACCESS_ALLOWED_EMAILS_JSON", self.workflow)
         self.assertIn("CLOUDFLARE_GOOGLE_CLIENT_ID", self.workflow)
         self.assertIn("CLOUDFLARE_GOOGLE_CLIENT_SECRET", self.workflow)
-        self.assertIn("TF_VAR_allowed_emails", self.workflow)
+        self.assertNotIn("TF_VAR_allowed_emails", self.workflow)
         self.assertIn("TF_VAR_google_oauth_client_id", self.workflow)
         self.assertIn("TF_VAR_google_oauth_client_secret", self.workflow)
         self.assertIn("CLOUDFLARE_ACCESS_STATE_ROLE_ARN", self.workflow)
