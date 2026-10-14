@@ -1,6 +1,6 @@
 # Cloudflare Access Terraform
 
-This root owns the existing Cloudflare Zero Trust organization settings, the Google identity provider, and the three OIDC SaaS Access applications/policies: `argocd`, `hermes`, and `cloud-drive`.
+This root owns the existing Cloudflare Zero Trust organization settings, the Google identity provider, the standard App Launcher, and the three OIDC SaaS Access applications/policies: `argocd`, `hermes`, and `cloud-drive`.
 
 It **does not** manage the existing One-time PIN provider, SSH Access applications, Access groups, users, DNS, tunnels, or Kubernetes/Sealed Secrets. One-time PIN remains available only as a rollback control-plane provider; these three SaaS applications accept Google only.
 
@@ -31,6 +31,14 @@ Application membership is owned by Cloudflare Zero Trust Rule groups rather than
 Terraform reads these existing groups and attaches each one to its matching reusable policy. It deliberately does not manage group members, so adding or removing an email in the dashboard is not reverted by a later apply. Keep infrastructure settings—applications, policies, Google IdP, callback URIs, session durations, and MFA requirements—in Terraform.
 
 Cloudflare group membership controls entry to an application, not authorization inside it. Argo CD RBAC and Cloud Drive identities/space ACLs remain separately enforced by those applications.
+
+## App Launcher
+
+The standard Cloudflare App Launcher is available at `https://miruohotspring.cloudflareaccess.com`. Its policy accepts a user who belongs to at least one of the three Web-managed application groups above and requires the same Google identity provider, independent TOTP, and 720-hour session duration as the relying applications.
+
+Argo CD and Hermes are visible in the Launcher. Cloud Drive remains hidden until all existing users have an explicitly verified Cloudflare OIDC identity and the production application has completed its reversible cutover from Authentik. After that cutover, set only `local.apps["cloud-drive"].launcher_visible` to `true`; do not weaken its identity-link or ACL checks.
+
+The Launcher is navigation and shared authentication entry only. Each application's own policy still decides whether its tile can be opened, and application-local authorization remains unchanged.
 
 ## One-time bootstrap
 

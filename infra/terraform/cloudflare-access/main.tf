@@ -12,18 +12,23 @@ locals {
       # The bundled Dex authenticates upstream as a confidential client and
       # provides Argo's separate Web/CLI clients, including CLI PKCE.
       allow_pkce_without_secret = false
+      launcher_visible          = true
     }
     hermes = {
       name                      = "Hermes Dashboard"
       domain                    = "hermes.miruohotspring.net"
       redirect_uris             = ["https://hermes.miruohotspring.net/auth/callback"]
       allow_pkce_without_secret = true
+      launcher_visible          = true
     }
     cloud-drive = {
       name                      = "Cloud Drive"
       domain                    = "api-drive.miruohotspring.net"
       redirect_uris             = ["https://api-drive.miruohotspring.net/v1/auth/callback"]
       allow_pkce_without_secret = false
+      # Keep hidden until the remaining local identities are linked and the
+      # production application has switched from Authentik to Cloudflare OIDC.
+      launcher_visible = false
     }
   }
 }
@@ -92,6 +97,7 @@ resource "cloudflare_zero_trust_access_application" "app" {
   type       = "saas"
 
   allowed_idps              = [cloudflare_zero_trust_access_identity_provider.google.id]
+  app_launcher_visible      = each.value.launcher_visible
   auto_redirect_to_identity = true
   session_duration          = "720h"
   policies = [
@@ -119,6 +125,26 @@ resource "cloudflare_zero_trust_access_application" "app" {
   }
 }
 
+resource "cloudflare_zero_trust_access_application" "launcher" {
+  account_id = var.cloudflare_account_id
+  name       = "App Launcher"
+  type       = "app_launcher"
+
+  allowed_idps              = [cloudflare_zero_trust_access_identity_provider.google.id]
+  auto_redirect_to_identity = true
+  session_duration          = "720h"
+  policies = [
+    {
+      id         = cloudflare_zero_trust_access_policy.launcher.id
+      precedence = 1
+    }
+  ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "cloudflare_zero_trust_access_policy" "allow_email_otp_totp" {
   for_each = local.apps
 
@@ -134,6 +160,30 @@ resource "cloudflare_zero_trust_access_policy" "allow_email_otp_totp" {
       id = data.cloudflare_zero_trust_access_group.app_users[each.key].id
     }
   }]
+
+  session_duration = "720h"
+
+  mfa_config = {
+    allowed_authenticators = ["totp"]
+    mfa_disabled           = false
+    session_duration       = "720h"
+  }
+}
+
+resource "cloudflare_zero_trust_access_policy" "launcher" {
+  depends_on = [cloudflare_zero_trust_organization.this]
+
+  account_id = var.cloudflare_account_id
+  name       = "Allow App Launcher via Google with TOTP"
+  decision   = "allow"
+
+  include = [
+    for key in sort(keys(local.apps)) : {
+      group = {
+        id = data.cloudflare_zero_trust_access_group.app_users[key].id
+      }
+    }
+  ]
 
   session_duration = "720h"
 
