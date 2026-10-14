@@ -142,9 +142,6 @@ resource "cloudflare_zero_trust_access_application" "launcher" {
 
   lifecycle {
     prevent_destroy = true
-    # Cloudflare returns an API-generated empty/default design that provider
-    # v5.27 cannot round-trip without a perpetual empty/title diff.
-    ignore_changes = [landing_page_design, landing_page_design.title]
   }
 }
 

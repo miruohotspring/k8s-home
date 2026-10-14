@@ -40,6 +40,8 @@ Argo CD and Hermes are visible in the Launcher. Cloud Drive remains hidden until
 
 The Launcher is navigation and shared authentication entry only. Each application's own policy still decides whether its tile can be opened, and application-local authorization remains unchanged.
 
+Cloudflare provider v5.27 currently exposes a cosmetic read-back difference for the API-generated empty `landing_page_design` object. A post-apply plan can therefore report one in-place Launcher change between `{}` and `null`; it contains no identity, policy, session, visibility, delete, or replacement change. Do not add broad `ignore_changes` rules to hide it, because those could conceal real Launcher security drift.
+
 ## One-time bootstrap
 
 An administrator with existing AWS credentials first creates the state-only Actions role from the separate federation root:
