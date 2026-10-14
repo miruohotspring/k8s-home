@@ -75,22 +75,20 @@ resource "cloudflare_zero_trust_access_identity_provider" "google" {
   }
 }
 
-resource "cloudflare_zero_trust_access_group" "app_users" {
+removed {
+  from = cloudflare_zero_trust_access_group.app_users
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+data "cloudflare_zero_trust_access_group" "app_users" {
   for_each = local.apps
 
   account_id = var.cloudflare_account_id
-  name       = "app-${each.key}-users"
-
-  include = [
-    for email in var.allowed_emails[each.key] : {
-      email = {
-        email = email
-      }
-    }
-  ]
-
-  lifecycle {
-    prevent_destroy = true
+  filter = {
+    name = "app-${each.key}-users"
   }
 }
 
@@ -141,7 +139,7 @@ resource "cloudflare_zero_trust_access_policy" "allow_email_otp_totp" {
 
   include = [{
     group = {
-      id = cloudflare_zero_trust_access_group.app_users[each.key].id
+      id = data.cloudflare_zero_trust_access_group.app_users[each.key].id
     }
   }]
 

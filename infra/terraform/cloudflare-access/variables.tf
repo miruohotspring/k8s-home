@@ -14,9 +14,3 @@ variable "google_oauth_client_secret" {
   type        = string
   sensitive   = true
 }
-
-variable "allowed_emails" {
-  description = "Sensitive per-application email allowlists keyed by argocd, hermes, and cloud-drive."
-  type        = map(set(string))
-  sensitive   = true
-}

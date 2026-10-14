@@ -7,10 +7,9 @@ It **does not** manage the existing One-time PIN provider, SSH Access applicatio
 ## State and credentials
 
 - S3 backend: `web-app-template-tfstate-dev/platform/cloudflare-access/terraform.tfstate`, encrypted with an S3 lockfile.
-- The state contains the sensitive email allowlists, Google OAuth client secret, and generated SaaS client secrets. Do not print it, commit it, or upload plan/state artifacts.
+- The state contains the Google OAuth client secret and generated SaaS client secrets. Do not print it, commit it, or upload plan/state artifacts.
 - The provider reads `CLOUDFLARE_API_TOKEN`; CI maps this only from GitHub secret `CLOUDFLARE_ACCESS_API_TOKEN`.
 - Required repository variable: `CLOUDFLARE_ACCOUNT_ID`.
-- Required repository secret: `CLOUDFLARE_ACCESS_ALLOWED_EMAILS_JSON`, a JSON object with exactly `argocd`, `hermes`, and `cloud-drive` keys. The values must be email arrays; never put personal email addresses in this public repository.
 - Required repository secrets: `CLOUDFLARE_GOOGLE_CLIENT_ID` and `CLOUDFLARE_GOOGLE_CLIENT_SECRET`.
 
 The Access token must be scoped only to Access Organizations/Identity Providers/Groups and Access Applications/Policies write plus Users read. Do not grant DNS, Tunnel, R2, or account-token-edit permissions.
@@ -20,6 +19,18 @@ The Access token must be scoped only to Access Organizations/Identity Providers/
 Google does not expose a supported API, `gcloud` command, or Terraform resource for creating a general Google Sign-In OAuth client. Create that single client manually in the `miruohotspring` Google Cloud project as a Web application with redirect URI `https://miruohotspring.cloudflareaccess.com/cdn-cgi/access/callback`. Use only the standard `openid`, `email`, and `profile` identity scopes. Store the resulting values directly in the two GitHub Actions secrets above; never commit or paste them into plans, logs, or documentation.
 
 All other Google resources used by CI—required APIs, the Workload Identity Pool/provider, service account, IAM, and the keyless GitHub Actions trust—are managed in `infra/terraform/google-identity`. No Google service-account key or API key is created.
+
+## Web-managed application membership
+
+Application membership is owned by Cloudflare Zero Trust Rule groups rather than Terraform or GitHub Secrets. Manage members in the Cloudflare dashboard under **Access controls → Policies → Rule groups**:
+
+- `app-argocd-users`
+- `app-hermes-users`
+- `app-cloud-drive-users`
+
+Terraform reads these existing groups and attaches each one to its matching reusable policy. It deliberately does not manage group members, so adding or removing an email in the dashboard is not reverted by a later apply. Keep infrastructure settings—applications, policies, Google IdP, callback URIs, session durations, and MFA requirements—in Terraform.
+
+Cloudflare group membership controls entry to an application, not authorization inside it. Argo CD RBAC and Cloud Drive identities/space ACLs remain separately enforced by those applications.
 
 ## One-time bootstrap
 
@@ -44,7 +55,7 @@ terraform import cloudflare_zero_trust_organization.this "$TF_VAR_cloudflare_acc
 terraform plan -out=/secure/path/cloudflare-access.tfplan
 ```
 
-Review that the plan changes only the organization settings, Google identity provider, and three intended applications/policies. The `saas_clients` output is sensitive; do not run a non-redacted `terraform output` in logs. Store generated client credentials through the separately reviewed secret-management path; this change intentionally does not create or sync a SealedSecret.
+Review that the plan changes only the organization settings, Google identity provider, and three intended applications/policies. It must resolve all three Web-managed groups by their exact names. The `saas_clients` output is sensitive; do not run a non-redacted `terraform output` in logs. Store generated client credentials through the separately reviewed secret-management path; this change intentionally does not create or sync a SealedSecret.
 
 ## Argo CD Web / CLI and Hermes integration
 
