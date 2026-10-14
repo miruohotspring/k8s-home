@@ -8,12 +8,13 @@ set -euo pipefail
 AWS_REGION="${AWS_REGION:-ap-northeast-1}"
 ECR_REGISTRY="${ECR_REGISTRY:-004908959120.dkr.ecr.ap-northeast-1.amazonaws.com}"
 KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+NAMESPACES="${NAMESPACES:-default example-dev m3usick-dev m3usick-prod}"
 
 echo "[$(date -Iseconds)] Starting ECR token refresh"
 
 TOKEN=$(aws ecr get-login-password --region "${AWS_REGION}")
 
-for NS in default example-dev; do
+for NS in ${NAMESPACES}; do
   kubectl --kubeconfig="${KUBECONFIG}" create secret docker-registry ecr-secret \
     --docker-server="${ECR_REGISTRY}" \
     --docker-username=AWS \
