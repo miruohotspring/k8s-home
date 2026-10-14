@@ -13,11 +13,13 @@ class ArgoCDCloudflareOIDCContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.cm = (ARGO / "argocd-cm.yaml").read_text()
+        cls.rbac_cm = (ARGO / "argocd-rbac-cm.yaml").read_text()
         cls.app = (ARGO / "application.yaml").read_text()
         cls.kustomization = (ARGO / "kustomization.yaml").read_text()
         cls.rbac_patch = (ARGO / "argocd-cloudflare-rbac-patch.yaml").read_text()
         cls.sealed_secret = (ARGO / "argocd-cloudflare-oidc-sealed.yaml").read_text()
         cls.runbook = (REPO / "docs" / "argocd-cloudflare-access-oidc-runbook.md").read_text()
+        cls.generator = (REPO / "scripts" / "prepare-argocd-cloudflare-oidc-secret.py").read_text()
 
     def test_secret_is_visible_to_argocd_settings_watcher(self):
         self.assertRegex(self.sealed_secret, r"(?m)^      labels:\n        app\.kubernetes\.io/part-of: argocd$")
@@ -89,6 +91,18 @@ class ArgoCDCloudflareOIDCContract(unittest.TestCase):
         self.assertIn("name: argocd-rbac-cm", self.app)
         self.assertIn("namespace: argocd", self.app)
         self.assertIn("/data/policy.cloudflare.csv", self.app)
+
+    def test_gui_admitted_users_receive_safe_default_access(self):
+        self.assertIn("policy.default: role:readonly", self.rbac_cm)
+        self.assertIn("g, platform-admins, role:admin", self.rbac_cm)
+        self.assertNotIn("policy.default: role:admin", self.rbac_cm)
+
+    def test_admin_rbac_is_not_derived_from_gui_membership(self):
+        self.assertIn('--admin-emails-file', self.generator)
+        self.assertNotIn('extract_argocd_emails', self.generator)
+        self.assertNotIn('"show", "-json"', self.generator)
+        self.assertIn('app-argocd-users', self.runbook)
+        self.assertIn('role:readonly', self.runbook)
 
 
     def test_phase_order_and_recovery_are_documented(self):
