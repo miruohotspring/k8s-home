@@ -6,7 +6,7 @@ metadata:
 spec:
   project: apps
   source:
-    repoURL: https://github.com/gammaLaboratory/m3usick-gitops.git
+    repoURL: git@github.com:gammaLaboratory/m3usick-gitops.git
     targetRevision: main
     path: infra/argocd
     directory:
