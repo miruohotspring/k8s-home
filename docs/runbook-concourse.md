@@ -121,8 +121,7 @@ The source of truth is the GitOps-managed SealedSecrets under
 
 Repository-specific references currently include:
 
-- m3usick app read: `((concourse-github-ssh-app.private_key))`
-- m3usick GitOps write: `((concourse-github-ssh.private_key))`
+- m3usickの旧Concourse credentialは退役済みであり、再作成しない。履歴と切替根拠は `docs/archive/concourse-m3usick-cutover.md` を参照する。
 - web-app-template app read: `((web-app-template-github-ssh-app.private_key))`
 - web-app-template GitOps write: `((web-app-template-github-ssh-gitops.private_key))`
 - AWS runtime credentials: `((concourse-aws-creds.<key>))`
