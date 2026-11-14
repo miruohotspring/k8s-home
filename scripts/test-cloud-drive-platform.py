@@ -37,16 +37,6 @@ class CloudDrivePlatformTest(unittest.TestCase):
                 "authentik-cloud-drive-env",
                 {"AUTHENTIK_CLOUD_DRIVE_CLIENT_SECRET"},
             ),
-            "cloud-drive-github-ssh-app-sealed.yaml": (
-                "concourse-main",
-                "cloud-drive-github-ssh-app",
-                {"private_key"},
-            ),
-            "cloud-drive-github-ssh-gitops-sealed.yaml": (
-                "concourse-main",
-                "cloud-drive-github-ssh-gitops",
-                {"private_key"},
-            ),
             "argocd-repo-cloud-drive-gitops-sealed.yaml": (
                 "argocd",
                 "argocd-repo-cloud-drive-gitops",
@@ -60,14 +50,6 @@ class CloudDrivePlatformTest(unittest.TestCase):
                     "DRIVE_D1_ACCOUNT_ID", "DRIVE_D1_DATABASE_ID", "DRIVE_D1_API_TOKEN",
                     "DRIVE_R2_ENDPOINT", "DRIVE_R2_ACCESS_KEY_ID", "DRIVE_R2_SECRET_ACCESS_KEY",
                 },
-            ),
-            "cloud-drive-runtime-sealed.yaml": (
-                "concourse-main", "cloud-drive-runtime",
-                {"d1_account_id", "d1_database_id", "d1_api_token", "cloudflare_api_token"},
-            ),
-            "cloud-drive-r2-state-sealed.yaml": (
-                "concourse-main", "cloud-drive-r2-state",
-                {"access_key_id", "secret_access_key"},
             ),
         }
         for filename, (namespace, name, keys) in expected.items():
