@@ -26,7 +26,7 @@ AWSの長期access keyをActionsへコピーしない。ECR roleとTerraform rol
 
 Secretsは値を記録せず、元のKubernetes Secretと用途を示す。初回登録後はGitHub APIから名前/更新状態を読み戻して確認する。GitHubからsecret実値を取得できるとは扱わない。
 
-- m3usick `GITOPS_DEPLOY_KEY` ← `concourse-main/concourse-github-ssh.private_key`
+- m3usick `GITOPS_DEPLOY_KEY`: GitHub repository secretとして登録済みであることを名前と更新時刻だけ読み戻して確認する。退役済みConcourse Secretから再投入しない。
 - Cloud Drive `GITOPS_DEPLOY_KEY` ← `cloud-drive-github-ssh-gitops.private_key`
 - template `GITOPS_DEPLOY_KEY` ← `web-app-template-github-ssh-gitops.private_key`
 - Cloud Drive/template `CLOUDFLARE_API_TOKEN` ← `concourse-cloudflare-creds.api_token`
