@@ -6,7 +6,6 @@
 - Namespace: `authentik`
 - OIDC consumers:
   - Argo CD: `https://argocd.miruohotspring.net`
-  - Concourse: `https://concourse.miruohotspring.net`
 - Authorization group: `platform-admins`
 - Authentication: email address + password + RFC 6238 TOTP
 - Session lifetime: 365 days
@@ -17,7 +16,7 @@ lost devices and revoke that user's active authentik sessions after a suspected 
 The **Remember me** and **Remember device** options remain disabled because the base
 authentik session itself is persistent for 365 days.
 
-The built-in Argo CD administrator and the Concourse local administrator remain enabled during migration. Do not disable them until both OIDC paths have been verified from a private browser session.
+The built-in Argo CD administrator remains enabled until OIDC has been verified from a private browser session.
 
 ## 2. Deployment and health
 
@@ -52,14 +51,13 @@ originRequest:
   noTLSVerify: true
 ```
 
-The HTTPS origin is intentional: ingress-nginx must pass `X-Forwarded-Proto: https` so authentik publishes HTTPS OIDC issuer URLs. Using the otherwise-common HTTP port 80 makes authentik publish an `http://` issuer and Concourse rejects it. `noTLSVerify` applies only to the tunnel-to-ingress internal hop because ingress-nginx uses its internal/default certificate.
+The HTTPS origin is intentional: ingress-nginx must pass `X-Forwarded-Proto: https` so authentik publishes HTTPS OIDC issuer URLs. Using the otherwise-common HTTP port 80 makes authentik publish an invalid `http://` issuer for HTTPS relying parties. `noTLSVerify` applies only to the tunnel-to-ingress internal hop because ingress-nginx uses its internal/default certificate.
 
-Verify the route and both OIDC issuers:
+Verify the route and active OIDC issuer:
 
 ```bash
 curl -fsS https://auth.miruohotspring.net/-/health/live/
 curl -fsS https://auth.miruohotspring.net/application/o/argocd/.well-known/openid-configuration
-curl -fsS https://auth.miruohotspring.net/application/o/concourse/.well-known/openid-configuration
 ```
 
 Both discovery documents must return their corresponding `https://auth.miruohotspring.net/application/o/.../` issuer.
@@ -74,7 +72,7 @@ https://auth.miruohotspring.net/if/flow/initial-setup/
 
 1. Set a strong password and email address for bootstrap administrator `akadmin`.
 2. Open **Admin interface** and confirm **System > Blueprints > Instances** reports `k8s-home platform authentication` as successful.
-3. Confirm the `Argo CD` and `Concourse` applications and providers exist.
+3. Confirm the `Argo CD` application and provider exist.
 4. Sign out, then sign in again from a private browser window. The platform authentication flow now requires TOTP; scan the QR code using any RFC 6238-compatible app and enter the generated code.
 5. Open `https://auth.miruohotspring.net/if/flow/default-authenticator-static-setup/` and create static single-use recovery codes. Store them offline and separately from the TOTP device.
 6. Verify one recovery code in a private browser, then generate a fresh set if authentik invalidates the tested set.
@@ -109,7 +107,7 @@ login still passes through password and required TOTP validation.
    adds them to `platform-admins` only if they should administer both Argo CD and the
    Concourse `main` team. Do not grant authentik superuser. A user who should have less
    privilege needs a separate group and relying-party RBAC mapping.
-8. The recipient starts a fresh login from Argo CD or Concourse. Enter email and password;
+8. The recipient starts a fresh login from Argo CD. Enter email and password;
    the platform authentication flow requires RFC 6238 TOTP enrollment before access.
 9. Open `https://auth.miruohotspring.net/if/flow/default-authenticator-static-setup/` and
    create static single-use recovery codes. Store them offline and separately from the
@@ -140,29 +138,13 @@ argocd account get-user-info
 argocd app list
 ```
 
-### Concourse
-
-1. Open `https://concourse.miruohotspring.net`.
-2. Select **Authentik**.
-3. Complete authentication.
-4. Confirm the user is a member of the `main` team and can list pipelines.
-
-CLI verification:
-
-```bash
-fly -t home login -c https://concourse.miruohotspring.net
-fly -t home teams
-fly -t home pipelines
-```
-
-Do not disable either local administrator unless all checks above pass and at least one `pg_restore --list`-validated dump has been copied to encrypted off-cluster storage.
+Do not disable the Argo CD local administrator unless all checks above pass and a tested break-glass path exists.
 
 ## 6. Disable routine local login after verification
 
 Make these changes through a reviewed Git commit:
 
 - Argo CD: set `admin.enabled: "false"` in `apps/argocd/argocd-cm.yaml`.
-- Concourse: set `concourse.web.localAuth.enabled: false` and remove `mainTeam.localUser` from `infra/concourse/values.yaml`.
 
 Keep the encrypted emergency credentials and the following recovery procedure available outside authentik.
 
@@ -171,7 +153,7 @@ Keep the encrypted emergency credentials and the following recovery procedure av
 If authentik is unavailable:
 
 1. Do not delete or recreate authentik PVCs.
-2. Re-enable Argo CD `admin` and/or Concourse local auth through GitOps.
+2. Re-enable Argo CD `admin` through GitOps.
 3. Wait for Argo CD sync and the affected rollout.
 4. Use the existing local administrator credential.
 5. Repair authentik, verify OIDC, then disable routine local login again.
@@ -237,7 +219,7 @@ A restore replaces identity, group, TOTP, and OIDC state. Take a fresh backup fi
 4. Drop and recreate the `authentik` database owned by `authentik`.
 5. Run `pg_restore --clean --if-exists --no-owner --dbname=authentik <dump>`.
 6. Scale authentik back up.
-7. Verify the blueprint, user login, TOTP, and both OIDC applications.
+7. Verify the blueprint, user login, TOTP, and active OIDC applications.
 
 Never restore a dump into a running authentik instance.
 
@@ -248,6 +230,5 @@ Secrets are stored only as SealedSecret ciphertext:
 - `authentik-env`: authentik key, database password, OIDC client secrets
 - `authentik-postgresql`: PostgreSQL user/admin passwords
 - `argocd-authentik-oidc`: Argo CD OIDC client secret
-- `concourse-web`: Concourse runtime keys and OIDC client credentials
 
 OIDC client secret rotation must update authentik and the corresponding application secret in the same change. PostgreSQL password rotation requires a coordinated database password change; replacing only the Kubernetes Secret will cause an outage.

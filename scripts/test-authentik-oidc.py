@@ -65,9 +65,7 @@ def main() -> None:
         "access_token_validity: days=365",
         "refresh_token_validity: days=365",
         "https://argocd.miruohotspring.net/auth/callback",
-        "https://concourse.miruohotspring.net/sky/issuer/callback",
         "AUTHENTIK_ARGOCD_CLIENT_SECRET",
-        "AUTHENTIK_CONCOURSE_CLIENT_SECRET",
         "AUTHENTIK_CLOUD_DRIVE_CLIENT_SECRET",
         "cloud-drive-users",
         "users:",
@@ -87,8 +85,8 @@ def main() -> None:
         "user_type: internal",
     ):
         assert expected in blueprint, f"blueprint missing {expected}"
-    assert blueprint.count("access_token_validity: days=365") == 2
-    assert blueprint.count("refresh_token_validity: days=365") == 4
+    assert blueprint.count("access_token_validity: days=365") == 1
+    assert blueprint.count("refresh_token_validity: days=365") == 3
     hermes_blueprint = yaml.safe_load(blueprint)["data"]["hermes.yaml"]
     for expected in (
         "name: hermes-users",
@@ -102,6 +100,8 @@ def main() -> None:
         assert expected in hermes_blueprint, f"Hermes blueprint missing {expected}"
     assert "client_secret:" not in hermes_blueprint
     assert "create_users_group:" not in blueprint
+    assert "concourse-provider" not in blueprint
+    assert "slug: concourse" not in blueprint
 
     invitation_stage = blueprint.index("authentik_stages_invitation.invitationstage")
     credentials_stage = blueprint.index("name: platform-invitation-prompt-credentials")
@@ -185,34 +185,6 @@ def main() -> None:
     rbac = find(argocd_render, "ConfigMap", "argocd-rbac-cm")
     assert "g, platform-admins, role:admin" in rbac["data"]["policy.csv"]
 
-    concourse_render = docs(
-        run(
-            "helm",
-            "template",
-            "concourse",
-            "concourse",
-            "--repo",
-            "https://concourse-charts.storage.googleapis.com/",
-            "--version",
-            "20.0.1",
-            "--namespace",
-            "concourse",
-            "-f",
-            str(ROOT / "infra/concourse/values.yaml"),
-        )
-    )
-    web = find(concourse_render, "Deployment", "concourse-web")
-    env = {item["name"]: item for item in web["spec"]["template"]["spec"]["containers"][0]["env"]}
-    assert env["CONCOURSE_OIDC_ISSUER"]["value"] == "https://auth.miruohotspring.net/application/o/concourse/"
-    assert env["CONCOURSE_OIDC_SCOPE"]["value"] == "profile,email,groups"
-    assert env["CONCOURSE_OIDC_GROUPS_KEY"]["value"] == "groups"
-    assert env["CONCOURSE_MAIN_TEAM_OIDC_GROUP"]["value"] == "platform-admins"
-    assert env["CONCOURSE_AUTH_DURATION"]["value"] == "8760h"
-    assert "CONCOURSE_ADD_LOCAL_USER" in env
-    assert env["CONCOURSE_OIDC_CLIENT_SECRET"]["valueFrom"]["secretKeyRef"]["key"] == "oidc-client-secret"
-
-    run("kubectl", "kustomize", "infra/concourse")
-
     sealed = {
         path.name: yaml.safe_load(path.read_text())
         for path in (ROOT / "infra/secrets").glob("*authentik*-sealed.yaml")
@@ -229,28 +201,9 @@ def main() -> None:
         "AUTHENTIK_SECRET_KEY",
         "AUTHENTIK_POSTGRESQL__PASSWORD",
         "AUTHENTIK_ARGOCD_CLIENT_SECRET",
-        "AUTHENTIK_CONCOURSE_CLIENT_SECRET",
     } <= set(env_keys)
 
-    concourse_secret = yaml.safe_load((ROOT / "infra/secrets/concourse-web-sealed.yaml").read_text())
-    assert {"oidc-client-id", "oidc-client-secret"} <= set(concourse_secret["spec"]["encryptedData"])
-
-    for filename, secret_name in (
-        ("web-app-template-github-ssh-app-sealed.yaml", "web-app-template-github-ssh-app"),
-        (
-            "web-app-template-github-ssh-gitops-sealed.yaml",
-            "web-app-template-github-ssh-gitops",
-        ),
-        ("cloud-drive-github-ssh-app-sealed.yaml", "cloud-drive-github-ssh-app"),
-        (
-            "cloud-drive-github-ssh-gitops-sealed.yaml",
-            "cloud-drive-github-ssh-gitops",
-        ),
-    ):
-        ssh_secret = yaml.safe_load((ROOT / "infra/secrets" / filename).read_text())
-        assert ssh_secret["metadata"]["name"] == secret_name
-        assert ssh_secret["metadata"]["namespace"] == "concourse-main"
-        assert "private_key" in ssh_secret["spec"]["encryptedData"]
+    assert "AUTHENTIK_CONCOURSE_CLIENT_SECRET" not in env_keys
 
     print("authentik OIDC GitOps validation passed")
 

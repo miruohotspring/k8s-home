@@ -10,7 +10,6 @@ spec:
     - https://kubernetes.github.io/ingress-nginx
     - https://argoproj.github.io/argo-helm
     - https://bitnami-labs.github.io/sealed-secrets
-    - https://concourse-charts.storage.googleapis.com/
     - https://charts.goauthentik.io
   destinations:
     - namespace: ingress-nginx
@@ -20,10 +19,6 @@ spec:
     - namespace: argocd
       server: https://kubernetes.default.svc
     - namespace: kube-system
-      server: https://kubernetes.default.svc
-    - namespace: concourse
-      server: https://kubernetes.default.svc
-    - namespace: concourse-main
       server: https://kubernetes.default.svc
     - namespace: authentik
       server: https://kubernetes.default.svc
