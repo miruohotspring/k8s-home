@@ -106,6 +106,7 @@ jobs:
           TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           TF_VAR_google_oauth_client_id: ${{ secrets.CLOUDFLARE_GOOGLE_CLIENT_ID }}
           TF_VAR_google_oauth_client_secret: ${{ secrets.CLOUDFLARE_GOOGLE_CLIENT_SECRET }}
+          TF_VAR_m3usick_dev_group_id: ${{ vars.M3USICK_DEV_ACCESS_GROUP_ID }}
           TF_VAR_enable_m3usick_dev_policy_draft: ${{ vars.ENABLE_M3USICK_DEV_POLICY_DRAFT || 'false' }}
           TF_VAR_enable_m3usick_pages_access_trial: ${{ vars.ENABLE_M3USICK_PAGES_ACCESS_TRIAL || 'false' }}
           TF_VAR_enable_m3usick_api_access: ${{ vars.ENABLE_M3USICK_API_ACCESS || 'false' }}
@@ -146,6 +147,7 @@ jobs:
           TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           TF_VAR_google_oauth_client_id: ${{ secrets.CLOUDFLARE_GOOGLE_CLIENT_ID }}
           TF_VAR_google_oauth_client_secret: ${{ secrets.CLOUDFLARE_GOOGLE_CLIENT_SECRET }}
+          TF_VAR_m3usick_dev_group_id: ${{ vars.M3USICK_DEV_ACCESS_GROUP_ID }}
           TF_VAR_enable_m3usick_dev_policy_draft: ${{ vars.ENABLE_M3USICK_DEV_POLICY_DRAFT || 'false' }}
           TF_VAR_enable_m3usick_pages_access_trial: ${{ vars.ENABLE_M3USICK_PAGES_ACCESS_TRIAL || 'false' }}
           TF_VAR_enable_m3usick_api_access: ${{ vars.ENABLE_M3USICK_API_ACCESS || 'false' }}

@@ -25,6 +25,13 @@ class CloudflareAccessContract(unittest.TestCase):
         for flag in ("DEV_POLICY_DRAFT", "PAGES_ACCESS_TRIAL", "API_ACCESS", "CUSTOM_HOST_ACCESS"):
             self.assertEqual(self.workflow.count("vars.ENABLE_M3USICK_" + flag + " || 'false'"), 2)
 
+    def test_m3_group_id_is_passed_to_both_plan_and_apply(self):
+        self.assertEqual(self.workflow.count("TF_VAR_m3usick_dev_group_id: ${{ vars.M3USICK_DEV_ACCESS_GROUP_ID }}"), 2)
+        m3 = (ROOT / "m3usick-dev.tf").read_text()
+        group = m3.split('data "cloudflare_zero_trust_access_group" "m3usick_dev" {', 1)[1].split('\n}', 1)[0]
+        self.assertRegex(group, r"group_id\s*=\s*var\.m3usick_dev_group_id")
+        self.assertNotIn("filter", group)
+
     def test_m3_plan_guard_rejects_unrelated_and_destructive_changes(self):
         match = re.search(r"jq -e '([^']*m3usick_dev[^']*)' tfplan.json", self.workflow)
         self.assertIsNotNone(match)

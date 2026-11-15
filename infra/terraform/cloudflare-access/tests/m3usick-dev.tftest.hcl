@@ -4,11 +4,12 @@ mock_provider "cloudflare" {
     defaults = { id = "test-policy-id" }
   }
   mock_data "cloudflare_zero_trust_access_group" {
-    defaults = { id = "test-group-id" }
+    defaults = { id = "a732f122-b1f8-4940-ba97-32bb3c3e9e76" }
   }
 }
 
 variables {
+  m3usick_dev_group_id       = "a732f122-b1f8-4940-ba97-32bb3c3e9e76"
   cloudflare_account_id      = "test-account"
   google_oauth_client_id     = "test-client"
   google_oauth_client_secret = "test-secret"
@@ -16,6 +17,7 @@ variables {
 
 run "disabled_by_default" {
   command = plan
+  variables { m3usick_dev_group_id = "" }
   assert {
     condition     = length(cloudflare_zero_trust_access_policy.m3usick_dev) == 0
     error_message = "The draft policy must not exist by default."
@@ -26,11 +28,11 @@ run "enabled_policy_uses_gui_group_and_totp" {
   command = plan
   variables { enable_m3usick_dev_policy_draft = true }
   assert {
-    condition     = data.cloudflare_zero_trust_access_group.m3usick_dev[0].filter.name == "app-m3usick-dev-users"
+    condition     = data.cloudflare_zero_trust_access_group.m3usick_dev[0].group_id == "a732f122-b1f8-4940-ba97-32bb3c3e9e76"
     error_message = "The dedicated GUI-managed group must be looked up."
   }
   assert {
-    condition     = one(cloudflare_zero_trust_access_policy.m3usick_dev[0].include).group.id == "test-group-id" && cloudflare_zero_trust_access_policy.m3usick_dev[0].decision == "allow"
+    condition     = one(cloudflare_zero_trust_access_policy.m3usick_dev[0].include).group.id == "a732f122-b1f8-4940-ba97-32bb3c3e9e76" && cloudflare_zero_trust_access_policy.m3usick_dev[0].decision == "allow"
     error_message = "Only the dedicated group must be allowed."
   }
   assert {
@@ -104,4 +106,22 @@ run "custom_host_requires_api" {
     enable_m3usick_custom_host_access = true
   }
   expect_failures = [var.enable_m3usick_custom_host_access]
+}
+
+run "enabled_requires_group_id" {
+  command = plan
+  variables {
+    enable_m3usick_dev_policy_draft = true
+    m3usick_dev_group_id            = ""
+  }
+  expect_failures = [var.m3usick_dev_group_id]
+}
+
+run "enabled_rejects_invalid_group_id" {
+  command = plan
+  variables {
+    enable_m3usick_dev_policy_draft = true
+    m3usick_dev_group_id            = "not-a-uuid"
+  }
+  expect_failures = [var.m3usick_dev_group_id]
 }

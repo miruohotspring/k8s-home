@@ -2,9 +2,7 @@
 data "cloudflare_zero_trust_access_group" "m3usick_dev" {
   count      = var.enable_m3usick_dev_policy_draft ? 1 : 0
   account_id = var.cloudflare_account_id
-  filter = {
-    name = "app-m3usick-dev-users"
-  }
+  group_id   = var.m3usick_dev_group_id
 }
 
 resource "cloudflare_zero_trust_access_policy" "m3usick_dev" {
@@ -22,6 +20,16 @@ resource "cloudflare_zero_trust_access_policy" "m3usick_dev" {
     allowed_authenticators = ["totp"]
     mfa_disabled           = false
     session_duration       = "720h"
+  }
+}
+
+variable "m3usick_dev_group_id" {
+  description = "UUID of the existing GUI-managed m3usick dev Access group."
+  type        = string
+  default     = ""
+  validation {
+    condition     = !var.enable_m3usick_dev_policy_draft || can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.m3usick_dev_group_id))
+    error_message = "A valid m3usick dev Access group UUID is required when the policy is enabled."
   }
 }
 
