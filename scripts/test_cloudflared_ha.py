@@ -41,6 +41,12 @@ class CloudflaredHAContractTest(unittest.TestCase):
         anti_affinity = self.pod["spec"].get("affinity", {}).get("podAntiAffinity", {})
         self.assertFalse(anti_affinity.get("requiredDuringSchedulingIgnoredDuringExecution"))
 
+    def test_spread_counts_only_incoming_deployment_revision(self):
+        # Rendered contract only: actual scheduling depends on eligible nodes and
+        # the cluster's feature gate; verify both during the live rollout.
+        constraint = self.pod["spec"]["topologySpreadConstraints"][0]
+        self.assertEqual(["pod-template-hash"], constraint.get("matchLabelKeys"))
+
     def test_pdb_protects_one_matching_connector(self):
         pdbs = [r for r in self.resources if r["kind"] == "PodDisruptionBudget"]
         self.assertEqual(1, len(pdbs))
