@@ -31,25 +31,35 @@ variable "enable_m3usick_dev_policy_draft" {
   default     = false
 }
 
+variable "enable_m3usick_api_access" {
+  type        = bool
+  default     = false
+  description = "Protect the API hostname before it becomes public."
+  validation {
+    condition     = !var.enable_m3usick_api_access || var.enable_m3usick_dev_policy_draft
+    error_message = "The dedicated dev policy must be enabled for API Access."
+  }
+}
+
 variable "enable_m3usick_custom_host_access" {
   type        = bool
   default     = false
   description = "Enable only after Pages has accepted dev.m3usick.com as a custom domain."
   validation {
-    condition     = !var.enable_m3usick_custom_host_access || var.enable_m3usick_dev_policy_draft
-    error_message = "The dedicated dev policy must be enabled for custom-host Access."
+    condition     = !var.enable_m3usick_custom_host_access || (var.enable_m3usick_dev_policy_draft && var.enable_m3usick_api_access)
+    error_message = "The dedicated dev policy and API Access must be enabled for custom-host Access."
   }
 }
 
 # Attach the already registered Pages custom hostname only after Pages accepts
 # it without an Access app. Keep both concrete hosts together for eager cookies.
 resource "cloudflare_zero_trust_access_application" "m3usick_dev" {
-  count                     = var.enable_m3usick_custom_host_access ? 1 : 0
+  count                     = var.enable_m3usick_api_access ? 1 : 0
   account_id                = var.cloudflare_account_id
   name                      = "m3usick dev"
   type                      = "self_hosted"
-  domain                    = "dev.m3usick.com"
-  destinations              = [{ type = "public", uri = "dev.m3usick.com" }, { type = "public", uri = "api-dev.m3usick.com" }]
+  domain                    = "api-dev.m3usick.com"
+  destinations              = concat([{ type = "public", uri = "api-dev.m3usick.com" }], var.enable_m3usick_custom_host_access ? [{ type = "public", uri = "dev.m3usick.com" }] : [])
   allowed_idps              = [cloudflare_zero_trust_access_identity_provider.google.id]
   auto_redirect_to_identity = true
   options_preflight_bypass  = true

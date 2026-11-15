@@ -43,6 +43,7 @@ run "enabled_app_protects_dev_hosts_only" {
   command = plan
   variables {
     enable_m3usick_dev_policy_draft   = true
+    enable_m3usick_api_access         = true
     enable_m3usick_custom_host_access = true
   }
   assert {
@@ -78,4 +79,29 @@ run "trial_requires_policy" {
   command = plan
   variables { enable_m3usick_pages_access_trial = true }
   expect_failures = [var.enable_m3usick_pages_access_trial]
+}
+
+run "api_first_excludes_pages_custom_host" {
+  command = plan
+  variables {
+    enable_m3usick_dev_policy_draft = true
+    enable_m3usick_api_access       = true
+  }
+  assert {
+    condition     = cloudflare_zero_trust_access_application.m3usick_dev[0].domain == "api-dev.m3usick.com" && toset([for d in cloudflare_zero_trust_access_application.m3usick_dev[0].destinations : d.uri]) == toset(["api-dev.m3usick.com"])
+    error_message = "API-first must protect only the API hostname."
+  }
+}
+run "api_requires_policy" {
+  command = plan
+  variables { enable_m3usick_api_access = true }
+  expect_failures = [var.enable_m3usick_api_access]
+}
+run "custom_host_requires_api" {
+  command = plan
+  variables {
+    enable_m3usick_dev_policy_draft   = true
+    enable_m3usick_custom_host_access = true
+  }
+  expect_failures = [var.enable_m3usick_custom_host_access]
 }

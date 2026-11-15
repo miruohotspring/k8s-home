@@ -106,14 +106,33 @@ jobs:
           TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           TF_VAR_google_oauth_client_id: ${{ secrets.CLOUDFLARE_GOOGLE_CLIENT_ID }}
           TF_VAR_google_oauth_client_secret: ${{ secrets.CLOUDFLARE_GOOGLE_CLIENT_SECRET }}
+          TF_VAR_enable_m3usick_dev_policy_draft: ${{ vars.ENABLE_M3USICK_DEV_POLICY_DRAFT || 'false' }}
+          TF_VAR_enable_m3usick_pages_access_trial: ${{ vars.ENABLE_M3USICK_PAGES_ACCESS_TRIAL || 'false' }}
+          TF_VAR_enable_m3usick_api_access: ${{ vars.ENABLE_M3USICK_API_ACCESS || 'false' }}
+          TF_VAR_enable_m3usick_custom_host_access: ${{ vars.ENABLE_M3USICK_CUSTOM_HOST_ACCESS || 'false' }}
           TF_IN_AUTOMATION: "true"
         run: |
           terraform init -input=false
           # Refuse an unbootstrapped state rather than creating the existing organization.
           terraform state show cloudflare_zero_trust_organization.this >/dev/null
-          terraform plan -input=false -out=tfplan
+          m3_enabled=false
+          for value in "$TF_VAR_enable_m3usick_dev_policy_draft" "$TF_VAR_enable_m3usick_pages_access_trial" "$TF_VAR_enable_m3usick_api_access" "$TF_VAR_enable_m3usick_custom_host_access"; do
+            case "$value" in
+              true) m3_enabled=true ;;
+              false) ;;
+              *) echo "Invalid M3 Access boolean repository variable" >&2; exit 1 ;;
+            esac
+          done
+          if [ "$m3_enabled" = true ]; then
+            terraform plan -input=false -out=tfplan -target=cloudflare_zero_trust_access_policy.m3usick_dev -target=cloudflare_zero_trust_access_application.m3usick_dev -target=cloudflare_zero_trust_access_application.m3usick_pages_trial
+          else
+            terraform plan -input=false -out=tfplan
+          fi
           terraform show -json tfplan > tfplan.json
           jq -e '[.resource_changes[]? | select((.change.actions | index("delete")) or (.change.actions | index("replace")))] | length == 0' tfplan.json >/dev/null
+          if [ "$m3_enabled" = true ]; then
+            jq -e '[.resource_changes[]? | select(.mode == "managed" and .change.actions != ["no-op"]) | select(((.address | split("[")[0]) as $a | ["cloudflare_zero_trust_access_policy.m3usick_dev", "cloudflare_zero_trust_access_application.m3usick_dev", "cloudflare_zero_trust_access_application.m3usick_pages_trial"] | index($a)) == null or (.change.actions | index("delete")) != null)] | length == 0' tfplan.json >/dev/null
+          fi
       - name: Reject stale main revision before apply
         if: inputs.operation == 'apply'
         env:
@@ -127,5 +146,9 @@ jobs:
           TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           TF_VAR_google_oauth_client_id: ${{ secrets.CLOUDFLARE_GOOGLE_CLIENT_ID }}
           TF_VAR_google_oauth_client_secret: ${{ secrets.CLOUDFLARE_GOOGLE_CLIENT_SECRET }}
+          TF_VAR_enable_m3usick_dev_policy_draft: ${{ vars.ENABLE_M3USICK_DEV_POLICY_DRAFT || 'false' }}
+          TF_VAR_enable_m3usick_pages_access_trial: ${{ vars.ENABLE_M3USICK_PAGES_ACCESS_TRIAL || 'false' }}
+          TF_VAR_enable_m3usick_api_access: ${{ vars.ENABLE_M3USICK_API_ACCESS || 'false' }}
+          TF_VAR_enable_m3usick_custom_host_access: ${{ vars.ENABLE_M3USICK_CUSTOM_HOST_ACCESS || 'false' }}
           TF_IN_AUTOMATION: "true"
         run: terraform apply -input=false -auto-approve tfplan
