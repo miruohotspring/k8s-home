@@ -3,6 +3,8 @@
 import pathlib
 import re
 import unittest
+import subprocess
+import json
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 ROOT = REPO / "infra" / "terraform" / "cloudflare-access"
@@ -18,6 +20,22 @@ class CloudflareAccessContract(unittest.TestCase):
         )
         cls.workflow = WORKFLOW.read_text()
         cls.bootstrap = BOOTSTRAP.read_text()
+
+    def test_m3_flags_are_passed_to_both_plan_and_apply(self):
+        for flag in ("DEV_POLICY_DRAFT", "PAGES_ACCESS_TRIAL", "API_ACCESS", "CUSTOM_HOST_ACCESS"):
+            self.assertEqual(self.workflow.count("vars.ENABLE_M3USICK_" + flag + " || 'false'"), 2)
+
+    def test_m3_plan_guard_rejects_unrelated_and_destructive_changes(self):
+        match = re.search(r"jq -e '([^']*m3usick_dev[^']*)' tfplan.json", self.workflow)
+        self.assertIsNotNone(match)
+        jq = match.group(1)
+        def allowed(address, actions):
+            plan = {"resource_changes": [{"mode": "managed", "address": address, "change": {"actions": actions}}]}
+            return subprocess.run(["jq", "-e", jq], input=json.dumps(plan), text=True, stdout=subprocess.DEVNULL).returncode == 0
+        self.assertTrue(allowed('cloudflare_zero_trust_access_application.m3usick_dev[0]', ['create']))
+        self.assertTrue(allowed('cloudflare_zero_trust_access_application.m3usick_pages_trial["previews"]', ['update']))
+        self.assertFalse(allowed('cloudflare_zero_trust_access_application.launcher', ['update']))
+        self.assertFalse(allowed('cloudflare_zero_trust_access_application.m3usick_dev[0]', ['delete', 'create']))
 
     def test_first_apply_and_shared_organization_are_guarded(self):
         self.assertIn("depends_on = [cloudflare_zero_trust_organization.this]", self.terraform)
@@ -91,10 +109,10 @@ class CloudflareAccessContract(unittest.TestCase):
         self.assertNotIn('"groups"', self.terraform)
 
     def test_nonstandard_access_paths_are_absent(self):
+        self.assertNotIn('type                      = "self_hosted"', (ROOT / "main.tf").read_text())
         for forbidden in (
             "__access_canary",
             "api-drive.miruohotspring.net/v1/auth/cloudflare-access",
-            'type                      = "self_hosted"',
             'output "self_hosted_audiences"',
         ):
             self.assertNotIn(forbidden, self.terraform)

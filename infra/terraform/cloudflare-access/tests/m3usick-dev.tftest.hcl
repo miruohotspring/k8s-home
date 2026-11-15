@@ -1,0 +1,107 @@
+mock_provider "cloudflare" {
+  override_during = plan
+  mock_resource "cloudflare_zero_trust_access_policy" {
+    defaults = { id = "test-policy-id" }
+  }
+  mock_data "cloudflare_zero_trust_access_group" {
+    defaults = { id = "test-group-id" }
+  }
+}
+
+variables {
+  cloudflare_account_id      = "test-account"
+  google_oauth_client_id     = "test-client"
+  google_oauth_client_secret = "test-secret"
+}
+
+run "disabled_by_default" {
+  command = plan
+  assert {
+    condition     = length(cloudflare_zero_trust_access_policy.m3usick_dev) == 0
+    error_message = "The draft policy must not exist by default."
+  }
+}
+
+run "enabled_policy_uses_gui_group_and_totp" {
+  command = plan
+  variables { enable_m3usick_dev_policy_draft = true }
+  assert {
+    condition     = data.cloudflare_zero_trust_access_group.m3usick_dev[0].filter.name == "app-m3usick-dev-users"
+    error_message = "The dedicated GUI-managed group must be looked up."
+  }
+  assert {
+    condition     = one(cloudflare_zero_trust_access_policy.m3usick_dev[0].include).group.id == "test-group-id" && cloudflare_zero_trust_access_policy.m3usick_dev[0].decision == "allow"
+    error_message = "Only the dedicated group must be allowed."
+  }
+  assert {
+    condition     = length(cloudflare_zero_trust_access_policy.m3usick_dev[0].mfa_config.allowed_authenticators) == 1 && contains(cloudflare_zero_trust_access_policy.m3usick_dev[0].mfa_config.allowed_authenticators, "totp") && cloudflare_zero_trust_access_policy.m3usick_dev[0].mfa_config.mfa_disabled == false
+    error_message = "The draft must require TOTP."
+  }
+}
+
+run "enabled_app_protects_dev_hosts_only" {
+  command = plan
+  variables {
+    enable_m3usick_dev_policy_draft   = true
+    enable_m3usick_api_access         = true
+    enable_m3usick_custom_host_access = true
+  }
+  assert {
+    condition     = toset([for d in cloudflare_zero_trust_access_application.m3usick_dev[0].destinations : d.uri]) == toset(["dev.m3usick.com", "api-dev.m3usick.com"])
+    error_message = "Only the two dev custom domains belong to this Access application."
+  }
+  assert {
+    condition     = cloudflare_zero_trust_access_application.m3usick_dev[0].options_preflight_bypass == true && cloudflare_zero_trust_access_application.m3usick_dev[0].type == "self_hosted"
+    error_message = "Only OPTIONS preflight may bypass authentication on the self-hosted app."
+  }
+  assert {
+    condition     = one(cloudflare_zero_trust_access_application.m3usick_dev[0].policies).id == cloudflare_zero_trust_access_policy.m3usick_dev[0].id
+    error_message = "The dev app must attach its dedicated allow policy."
+  }
+}
+
+run "trial_covers_alias_and_previews_without_custom_host" {
+  command = plan
+  variables {
+    enable_m3usick_dev_policy_draft   = true
+    enable_m3usick_pages_access_trial = true
+  }
+  assert {
+    condition     = toset([for app in cloudflare_zero_trust_access_application.m3usick_pages_trial : app.domain]) == toset(["m3usick-dev.pages.dev", "*.m3usick-dev.pages.dev"])
+    error_message = "The empty-project trial must cover only dev production alias and all previews."
+  }
+  assert {
+    condition     = length(cloudflare_zero_trust_access_application.m3usick_dev) == 0 && alltrue([for app in cloudflare_zero_trust_access_application.m3usick_pages_trial : one(app.policies).id == cloudflare_zero_trust_access_policy.m3usick_dev[0].id])
+    error_message = "Trial must attach the dev policy without creating custom-host Access."
+  }
+}
+run "trial_requires_policy" {
+  command = plan
+  variables { enable_m3usick_pages_access_trial = true }
+  expect_failures = [var.enable_m3usick_pages_access_trial]
+}
+
+run "api_first_excludes_pages_custom_host" {
+  command = plan
+  variables {
+    enable_m3usick_dev_policy_draft = true
+    enable_m3usick_api_access       = true
+  }
+  assert {
+    condition     = cloudflare_zero_trust_access_application.m3usick_dev[0].domain == "api-dev.m3usick.com" && toset([for d in cloudflare_zero_trust_access_application.m3usick_dev[0].destinations : d.uri]) == toset(["api-dev.m3usick.com"])
+    error_message = "API-first must protect only the API hostname."
+  }
+}
+run "api_requires_policy" {
+  command = plan
+  variables { enable_m3usick_api_access = true }
+  expect_failures = [var.enable_m3usick_api_access]
+}
+run "custom_host_requires_api" {
+  command = plan
+  variables {
+    enable_m3usick_dev_policy_draft   = true
+    enable_m3usick_custom_host_access = true
+  }
+  expect_failures = [var.enable_m3usick_custom_host_access]
+}
